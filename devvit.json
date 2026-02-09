@@ -1,0 +1,16 @@
+{
+  "name": "world-word-winner",
+  "version": "0.0.1",
+  "description": "Global multiplayer word game inspired by Wordle and Scrabble",
+  "permissions": {
+    "redis": true,
+    "realtime": true,
+    "reddit": true
+  },
+  "post": {
+    "customPost": true
+  },
+  "client": {
+    "directory": "webroot"
+  }
+}

@@ -1,0 +1,16 @@
+{
+    "name": "world-word-winner",
+    "version": "0.0.1",
+    "description": "Global multiplayer word game for Reddit",
+    "main": "src/main.tsx",
+    "scripts": {
+        "dev": "devvit playtest",
+        "upload": "devvit upload",
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "@devvit/public-api": "latest",
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {}
+}

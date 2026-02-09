@@ -651,6 +651,11 @@ class WordBlitz {
         const wordScore = this.calculateWordScore(word);
         this.score += wordScore;
 
+        // Submit to multiplayer server if available
+        if (window.multiplayerHelper && window.multiplayerHelper.isMultiplayer()) {
+            window.multiplayerHelper.submitWord(word, wordScore);
+        }
+
         // Update score display
         const scoreDisplay = document.querySelector('.header-column:last-child span');
         if (scoreDisplay) {
