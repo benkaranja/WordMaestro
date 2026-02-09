@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordBlitz Game</title>
+    <link rel="stylesheet" href="main.css">
+    <link rel="icon" href="data:," class="icon">
+</head>
+<body>
+    <div class="container">
+        <!-- Lobby Screen -->
+        <div class="screen lobby-screen">
+            <div class="header">
+                <div class="header-column title">
+                    <h1>WORDBLITZ</h1>
+                </div>
+            </div>
+            <div class="game-columns">
+                <div class="column">
+                    <h2>Players Joining <span>12</span></h2>
+                    <div class="joining-list">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+                <div class="column center">
+                    <div class="radial-progress-container">
+                        <h2>Next Game Starts In</h2>
+                        <div class="radial-progress">10</div>
+                    </div>
+                    <h2>How To Play</h2>
+                    <div class="instructions">
+                        <p>• Create words using the letter tiles</p>
+                        <p>• All words must be in the dictionary</p>
+                        <p>• Longer words score more points</p>
+                        <p>• Beat the clock and other players!</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <h2>Scoring</h2>
+                    <div class="multipliers">
+                        <p>1-4 letters: 1× points</p>
+                        <p>5 letters: 1.5× points</p>
+                        <p>6 letters: 2× points</p>
+                        <p>7 letters: 2.5× points</p>
+                        <p>8+ letters: 3× points</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="screen game-screen">
+            <div class="header">
+                <div class="header-column">
+                    <p>Words Found</p>
+                    <span>0</span>
+                </div>
+                <div class="header-column title">
+                    <h1>WORDBLITZ</h1>
+                    <div class="time-container">
+                        <span class="time-left">Time Left: 60s</span>
+                        <div class="mini-progress">
+                            <div class="mini-progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-column">
+                    <p>Score</p>
+                    <span>0</span>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar"></div>
+            </div>
+            <div class="game-columns">
+                <div class="column">
+                    <h2>LEADERBOARD <span>| 50 Players</span></h2>
+                    <div class="leaderboard-table">
+                        <!-- Leaderboard content -->
+                    </div>
+                </div>
+                <div class="column center">
+                    <div class="game-area">
+                        <div class="word-display">ENTER YOUR WORD</div>
+                        <div class="grid">
+                            <!-- Grid tiles -->
+                        </div>
+                        <div class="buttons">
+                            <button class="clear">Clear</button>
+                            <button class="submit">Submit</button>
+                            <button class="shuffle">Shuffle</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="column">
+                    <h2>WORDS FOUND <span>| 0 Words</span></h2>
+                    <div class="words-list">
+                        <!-- Words list -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- End Screen -->
+        <div class="screen end-screen">
+            <div class="header">
+                <div class="header-column title">
+                    <h1>WORDBLITZ</h1>
+                </div>
+            </div>
+            <div class="game-columns">
+                <div class="column">
+                    <h2>Final Standings</h2>
+                    <div class="final-standings">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+                <div class="column center">
+                    <h2>Game Statistics</h2>
+                    <div class="game-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Score</span>
+                            <span class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Words Found</span>
+                            <span class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Longest Word</span>
+                            <span class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Best Word Score</span>
+                            <span class="stat-value">-</span>
+                        </div>
+                    </div>
+
+                    <div class="next-game">
+                        <div class="radial-progress-container">
+                            <h3>Next Game Starts In</h3>
+                            <div class="radial-progress">10</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column">
+                    <h2>Top Words</h2>
+                    <div class="top-words">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const game = new WordBlitz();
+        });
+    </script>
+</body>
+</html>

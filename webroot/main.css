@@ -1,0 +1,1553 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: #0e1113;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* Base container */
+.container {
+    width: 720px;
+    height: 492px;
+    max-width: 100vw;
+    max-height: 100vh;
+    background-color: #090b0d;
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;  /* Prevent elements from escaping */
+}
+
+/* Screen Management */
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+
+.screen.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Game Screen Layout */
+.game-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Header Area */
+.header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.header-column {
+    flex: 1;
+    text-align: center;
+}
+
+.header-column.title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.header-column.title h1 {
+    font-size: 20px;
+    margin: 0;
+    font-weight: bold;
+}
+
+.header-column.title .time-left {
+    font-size: 14px;
+    color: #eac548;
+    font-weight: bold;
+}
+
+/* Remove progress bar styles */
+.progress-container {
+    display: none;
+}
+
+/* Game Columns Layout */
+.game-columns {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    width: 100%;
+}
+
+/* Column Styling */
+.column {
+    background-color: #111517;
+    border-radius: 5px;
+    padding: 10px;
+    height: 100%;
+}
+
+.column:first-child,
+.column:last-child {
+    flex: 1;
+}
+
+.column.center {
+    flex: 2;
+}
+
+/* Section Headers */
+.column h2 {
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.column h2 span {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    background-color: #191f22;
+    border-radius: 3px;
+    color: #ddd;
+    font-family: 'Arial Narrow', Arial, sans-serif;
+}
+
+/* Game Area */
+.game-area {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.word-display {
+    position: relative;
+    background-color: #333;
+    height: 53px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    border-radius: 5px;
+    margin-bottom: 0px;
+    transition: all 0.3s ease;
+}
+
+.word-display.feedback {
+    animation: shake 0.5s ease-in-out;
+}
+
+.word-display.feedback[data-type="error"] {
+    background-color: rgba(255, 82, 82, 0.2);
+    color: #ff5252;
+}
+
+.word-display.feedback[data-type="warning"] {
+    background-color: rgba(234, 197, 72, 0.2);
+    color: #d93900;
+}
+
+.word-display.feedback[data-type="success"] {
+    background-color: rgba(123, 170, 111, 0.2);
+    color: #01a484;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+.grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    margin: 10px 0;
+}
+
+.tile {
+    position: relative;
+    background-color: #1d2428;
+    aspect-ratio: 1;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    user-select: none; /* Prevent text selection */
+}
+
+.tile .points {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Change hover state to only apply while being pressed */
+.tile:active {
+    background-color: #1d2428;
+}
+
+.tile.active {
+    background-color: #1d2428;
+}
+
+.tile.clicked {
+    animation: tileClick 0.2s ease;
+}
+
+@keyframes tileClick {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+
+/* Buttons */
+.buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.buttons button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #1a2327;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.buttons button:hover {
+    background-color: #2c373d;
+}
+
+/* Specific button colors */
+.buttons .submit {
+    background-color: #01a484;
+}
+
+.buttons .submit:hover {
+    background-color: #02c29c;
+}
+
+.buttons .clear {
+    background-color: #d93900;
+}
+
+.buttons .clear:hover {
+    background-color: #ff4400;
+}
+
+.buttons .shuffle {
+    background-color: #eac548;
+    color: #0e1113;
+}
+
+.buttons .shuffle:hover {
+    background-color: #ffd700;
+}
+
+/* Words List */
+.words-list {
+    height: calc(100% - 40px);
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.word-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    margin-bottom: 4px;
+    background-color: #1e1e1e;
+    border-radius: 4px;
+    font-size: 14px;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.word-item .word {
+    color: #fff;
+}
+
+.word-item .score {
+    color: #01a484;
+    font-weight: bold;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Scrollbar styling */
+.words-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.words-list::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 3px;
+}
+
+.words-list::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+}
+
+.words-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Leaderboard Styles */
+.leaderboard-table {
+    margin-top: 5px;
+}
+
+.table-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #191f22;
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.player-name {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.word-count {
+    font-size: 10px;
+    color: #888;
+}
+
+.score {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Progress Bar Animation */
+@keyframes countdown {
+    from {
+        width: 100%;
+        background: linear-gradient(to right, #01a484, #01a484);
+    }
+    to {
+        width: 0%;
+        background: linear-gradient(to right, #d93900, #d93900);
+    }
+}
+
+.progress-bar {
+    animation: countdown 50s linear forwards;
+}
+
+/* Word Display Area */
+.word-display {
+    background-color: #333;
+    height: 53px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    border-radius: 5px;
+    margin-bottom: 0px;
+}
+
+/* Tile Active State */
+.tile.active {
+    background-color: #01a484;
+    transform: scale(0.95);
+}
+
+.tile:hover {
+    background-color: #d93900;
+}
+
+/* Animation Styles */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.tile.shake {
+    animation: shake 0.2s ease-in-out;
+}
+
+.tile {
+    transition: all 0.2s ease;
+}
+
+.tile.active {
+    background-color: #1d2428;
+    transform: scale(0.95);
+}
+
+/* Word Addition Animation */
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.word {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Game Message Animation */
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(20px); }
+    20% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
+
+.game-message {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    animation: fadeInOut 1.5s ease-in-out forwards;
+    z-index: 100;
+}
+
+/* Word Score Display */
+.word-score {
+    color: #01a484;
+    font-size: 10px;
+    margin-left: 4px;
+}
+
+/* Game Area Position Context */
+.game-area {
+    position: relative;
+}
+
+/* Improved Word Display */
+.word-display {
+    position: relative;
+    overflow: hidden;
+}
+
+.word-display::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #01a484;
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.word-display:not(:empty)::after {
+    transform: scaleX(1);
+}
+
+/* Word Display Feedback Styling */
+.word-display {
+    position: relative;
+    background-color: #333;
+    height: 53px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    border-radius: 5px;
+    margin-bottom: 0px;
+    transition: all 0.3s ease;
+}
+
+.word-display.feedback {
+    background-color: #2c2c2c;
+    color: #01a484; /* Success color */
+}
+
+/* Different colors for different feedback types */
+.word-display.feedback[data-type="error"] {
+    color: #ff5252; /* Error color */
+}
+
+.word-display.feedback[data-type="success"] {
+    color: #01a484; /* Success color */
+}
+
+.word-display.feedback[data-type="warning"] {
+    color: #d93900; /* Warning color */
+}
+
+/* Lobby & End Screen Header */
+.screen-header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.screen-header h1 {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+/* Lobby & End Screen Content */
+.screen-content {
+    display: flex;
+    gap: 10px;
+    height: calc(100% - 60px);
+}
+
+/* Column Styling (shared with game screen) */
+.lobby-screen .column:nth-child(2),
+.end-screen .column:nth-child(2) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.lobby-screen .radial-progress {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    position: relative;
+    background: conic-gradient(#01a484 var(--progress), #444 0deg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.lobby-screen .column h2 span {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    background-color: #191f22;
+    border-radius: 3px;
+    color: #ddd;
+    font-family: 'Arial Narrow', Arial, sans-serif;
+}
+
+/* Lobby Screen Specific */
+.joining-list {
+    margin-top: 10px;
+}
+
+.joining-player {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #191f22;
+}
+
+.countdown-timer {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.radial-progress {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    position: relative;
+    background: conic-gradient(#01a484 var(--progress), #444 0deg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+/* End Screen Specific */
+.final-standings {
+    margin-top: 10px;
+}
+
+.game-stats {
+    margin-top: 10px;
+}
+
+.top-words {
+    margin-top: 10px;
+}
+
+.top-word-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #444;
+}
+
+/* Countdown Timer */
+.countdown-timer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+}
+
+.radial-progress {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: conic-gradient(#01a484 var(--progress, 360deg), #444 0deg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 32px;
+}
+
+/* Instructions */
+.instructions {
+    margin-top: 20px;
+}
+
+.instructions p {
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+/* Multipliers */
+.multipliers {
+    margin-top: 20px;
+}
+
+.multipliers p {
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+/* Score Animation */
+.score-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #d93900;
+    font-size: 24px;
+    font-weight: bold;
+    animation: scorePopup 1s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes scorePopup {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -150%);
+    }
+}
+
+/* Center column alignment for lobby and end screens */
+.lobby-screen .column:nth-child(2),
+.end-screen .column:nth-child(2) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Countdown timer container */
+.countdown-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px 0;
+}
+
+/* How to play section */
+.how-to-play {
+    width: 100%;
+    text-align: center;
+}
+
+.how-to-play h2 {
+    margin-bottom: 15px;
+}
+
+.how-to-play p {
+    margin: 8px 0;
+}
+
+/* Game statistics section */
+.game-statistics {
+    width: 100%;
+    text-align: center;
+}
+
+.game-statistics h2 {
+    margin-bottom: 15px;
+}
+
+/* Next game countdown */
+.next-game {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px 0;
+}
+
+.next-game h3 {
+    margin-bottom: 10px;
+}
+
+/* Radial progress container */
+.radial-progress {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0;
+}
+
+@keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.word-display.flash {
+    animation: flash 0.5s ease-in-out infinite;
+}
+
+/* Lobby Screen - Players Joining List */
+.joining-list {
+    margin-top: 10px;
+    height: calc(100% - 40px);
+    overflow-y: auto;
+}
+
+.joining-player {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    background-color: #191f22;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.joining-player .player-name {
+    color: #fff;
+    font-weight: 600;
+}
+
+.joining-player .status {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+.joining-player .status:matches([status="ready"]) {
+    color: #01a484;
+    background-color: rgba(123, 170, 111, 0.2);
+}
+
+.joining-player .status:matches([status="joining"]) {
+    color: #d93900;
+    background-color: rgba(234, 197, 72, 0.2);
+}
+
+/* Main Game Screen - Leaderboard */
+.leaderboard-table {
+    margin-top: 5px;
+    height: calc(100% - 40px);
+    overflow-y: auto;
+}
+
+.table-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 8px;
+    margin-bottom: 4px;
+    background-color: #191f22;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.table-row .player-name {
+    flex: 2;
+    color: #fff;
+    font-weight: 600;
+}
+
+.table-row .word-count {
+    flex: 1;
+    text-align: center;
+    color: #888;
+}
+
+.table-row .score {
+    flex: 1;
+    text-align: right;
+    color: #01a484;
+    font-weight: bold;
+}
+
+/* End Screen - Final Standings */
+.final-standings {
+    margin-top: 10px;
+    height: calc(100% - 40px);
+    overflow-y: auto;
+}
+
+.standings-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    background-color: #191f22;
+    border-radius: 4px;
+}
+
+.standings-row .rank {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #191f22;
+    border-radius: 50%;
+    color: #fff;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.standings-row .player-content {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Modified to include name and words found */
+.standings-row .player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.standings-row .player-name {
+    color: #fff;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.standings-row .words-found {
+    display: block;
+    color: #888;
+    font-size: 10px;
+}
+
+/* Score now stands alone on the right */
+.standings-row .final-score {
+    color: #01a484;
+    font-weight: bold;
+    font-size: 14px;
+    align-self: center;
+}
+
+/* Top 3 Rankings Special Styling */
+.standings-row:nth-child(1) .rank {
+    background-color: #ffd700; /* Gold */
+    color: #333;
+}
+
+.standings-row:nth-child(2) .rank {
+    background-color: #c0c0c0; /* Silver */
+    color: #333;
+}
+
+.standings-row:nth-child(3) .rank {
+    background-color: #cd7f32; /* Bronze */
+    color: #333;
+}
+
+/* Scrollbar styling for all lists */
+.joining-list::-webkit-scrollbar,
+.leaderboard-table::-webkit-scrollbar,
+.final-standings::-webkit-scrollbar {
+    width: 6px;
+}
+
+.joining-list::-webkit-scrollbar-track,
+.leaderboard-table::-webkit-scrollbar-track,
+.final-standings::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 3px;
+}
+
+.joining-list::-webkit-scrollbar-thumb,
+.leaderboard-table::-webkit-scrollbar-thumb,
+.final-standings::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+}
+
+.joining-list::-webkit-scrollbar-thumb:hover,
+.leaderboard-table::-webkit-scrollbar-thumb:hover,
+.final-standings::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Header countdown timer and progress */
+.header-column.title .time-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    max-width: 120px;
+}
+
+.header-column.title .mini-progress {
+    width: 100%;
+    height: 3px;
+    background-color: #191f22;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.header-column.title .mini-progress-bar {
+    height: 100%;
+    width: 100%;
+    background-color: #eac548;
+    border-radius: 2px;
+    transition: width 1s linear;
+}
+
+.header-column.title .mini-progress-bar.warning {
+    background-color: #d93900;
+}
+
+/* End Screen Stats */
+.player-stats {
+    margin: 0px 0;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #2c373d;
+}
+
+.top-words {
+    margin-top: 15px;
+}
+
+.word-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.word-row .word {
+    color: #eac548;
+    font-weight: bold;
+}
+
+.word-row .points {
+    color: #01a484;
+    font-weight: bold;
+}
+
+/* End Screen Stats */
+.game-stats {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #1d2428;
+    border-radius: 5px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #2c373d;
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    color: #888;
+    font-size: 14px;
+}
+
+.stat-value {
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* Top Words Section */
+.top-words {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #1d2428;
+    border-radius: 5px;
+}
+
+.top-words h3 {
+    color: #eac548;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.word-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #2c373d;
+}
+
+.word-row:last-child {
+    border-bottom: none;
+}
+
+.word-row .word {
+    color: #01a484;
+    font-weight: bold;
+}
+
+.word-row .points {
+    color: #eac548;
+    font-size: 14px;
+}
+
+/* Next Game Section */
+.next-game {
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #1d2428;
+    border-radius: 5px;
+}
+
+.next-game h3 {
+    color: #eac548;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.next-game .countdown {
+    color: #01a484;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* Highlight special stats */
+.stat-item .stat-value.highlight {
+    color: #01a484;
+}
+
+/* Animation for countdown */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.next-game .countdown {
+    animation: pulse 1s infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .game-stats, .top-words, .next-game {
+        margin: 10px 0;
+        padding: 10px;
+    }
+
+    .stat-item, .word-row {
+        padding: 6px 0;
+    }
+
+    .stat-label, .stat-value {
+        font-size: 12px;
+    }
+
+    .next-game .countdown {
+        font-size: 20px;
+    }
+}
+
+/* End Screen Layout Adjustments */
+.end-screen .game-stats {
+    margin: 15px 0;
+    padding: 12px;
+    background-color: #1d2428;
+    border-radius: 5px;
+}
+
+.end-screen .next-game {
+    margin: 15px 0;
+    padding: 12px;
+}
+
+.end-screen .column h2 {
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #fff;
+}
+
+.end-screen .top-words {
+    height: calc(100% - 40px);
+    overflow-y: auto;
+    margin-top: 0;
+    padding: 0;
+    background-color: transparent;
+}
+
+.end-screen .word-row {
+    padding: 8px;
+    margin-bottom: 4px;
+    background-color: #1d2428;
+    border-radius: 4px;
+    border: none;
+}
+
+/* Common Screen Styles */
+.screen h1 {
+    font-size: 20px;
+    color: #fff;
+    font-weight: bold;
+}
+
+.screen h2 {
+    font-size: 14px;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.screen h3 {
+    font-size: 14px;
+    color: #eac548;
+    margin-bottom: 10px;
+}
+
+/* Column Headers with Player Count */
+.column h2 span {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    background-color: #191f22;
+    border-radius: 3px;
+    color: #ddd;
+    font-family: 'Arial Narrow', Arial, sans-serif;
+}
+
+/* Countdown Timer Styles */
+.countdown-timer, .next-game {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px 0;
+}
+
+.radial-progress {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    color: #01a484;
+    font-weight: bold;
+    background: #1d2428;
+    position: relative;
+    margin: 10px 0;
+}
+
+.radial-progress::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(#01a484 var(--progress), transparent 0deg);
+    mask: radial-gradient(transparent 55%, white 56%);
+    -webkit-mask: radial-gradient(transparent 55%, white 56%);
+}
+
+/* Instructions and Multipliers */
+.instructions p, .multipliers p {
+    font-size: 14px;
+    color: #888;
+    margin: 8px 0;
+}
+
+/* Game Stats Standardization */
+.game-stats .stat-item {
+    padding: 8px 0;
+}
+
+.game-stats .stat-label {
+    font-size: 14px;
+    color: #888;
+}
+
+.game-stats .stat-value {
+    font-size: 14px;
+    color: #fff;
+    font-weight: bold;
+}
+
+/* Words List Standardization */
+.words-list .word-item, 
+.top-words .word-row,
+.joining-list .joining-player {
+    padding: 8px;
+    margin-bottom: 4px;
+    background-color: #1d2428;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Score and Points Colors */
+.score, .points {
+    color: #01a484;
+    font-weight: bold;
+}
+
+/* Status Colors */
+.status[status="ready"] {
+    color: #01a484;
+}
+
+.status[status="joining"] {
+    color: #eac548;
+}
+
+/* Next Game Section with Radial Progress */
+.next-game {
+    text-align: center;
+    padding: 15px;
+    background-color: #1d2428;
+    border-radius: 5px;
+}
+
+.next-game h3 {
+    color: #eac548;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.next-game .countdown {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    color: #01a484;
+    font-weight: bold;
+    background: #191f22;
+    position: relative;
+}
+
+.next-game .countdown::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(#01a484 var(--progress), transparent 0deg);
+    mask: radial-gradient(transparent 55%, white 56%);
+    -webkit-mask: radial-gradient(transparent 55%, white 56%);
+}
+
+/* Animation for Countdown */
+@keyframes countdown-progress {
+    from {
+        --progress: 360deg;
+    }
+    to {
+        --progress: 0deg;
+    }
+}
+
+.next-game .countdown::before {
+    animation: countdown-progress 10s linear forwards;
+}
+
+/* Consistent Container Backgrounds */
+.column {
+    background-color: #111517;
+}
+
+.game-stats,
+.top-words,
+.next-game,
+.joining-list,
+.leaderboard-table,
+.final-standings {
+    background-color: #1d2428;
+    border-radius: 5px;
+}
+
+.icon {
+    display: none;  /* Move from link rel="icon" */
+}
+
+/* Add any other inline styles found */
+
+/* Unified Radial Progress Styling */
+.radial-progress-container {
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #1d2428;
+    border-radius: 5px;
+}
+
+.radial-progress {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    color: #01a484;
+    font-weight: bold;
+    background: #191f22;
+    position: relative;
+    margin: 10px auto;
+}
+
+.radial-progress::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(#01a484 var(--progress), transparent 0deg);
+    mask: radial-gradient(transparent 55%, white 56%);
+    -webkit-mask: radial-gradient(transparent 55%, white 56%);
+}
+
+/* Remove specific screen styles since we want them to look the same */
+.lobby-screen .radial-progress::before,
+.end-screen .radial-progress::before {
+    background: conic-gradient(#01a484 var(--progress), transparent 0deg);
+}
+
+/* Unified heading styles for both screens */
+.radial-progress-container h2,
+.radial-progress-container h3 {
+    color: #eac548;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+/* ========================================
+   MOBILE RESPONSIVE STYLES (9:16 Portrait)
+   ======================================== */
+
+@media screen and (max-width: 720px), screen and (max-aspect-ratio: 1/1) {
+    body {
+        padding: 10px;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .container {
+        width: 100%;
+        height: auto;
+        min-height: calc(100vh - 20px);
+        max-height: none;
+        padding: 10px;
+    }
+
+    /* Header adjustments */
+    .header {
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    .header-column {
+        min-width: 80px;
+    }
+
+    .header-column.title h1 {
+        font-size: 18px;
+    }
+
+    /* Stack columns vertically on mobile */
+    .game-columns {
+        flex-direction: column;
+        gap: 10px;
+        overflow-y: auto;
+    }
+
+    .column {
+        width: 100%;
+        flex: none;
+        min-height: auto;
+    }
+
+    .column.center {
+        order: -1;  /* Move game area to top on mobile */
+    }
+
+    /* Game area on mobile */
+    .game-area {
+        width: 100%;
+    }
+
+    .word-display {
+        height: 45px;
+        font-size: 20px;
+    }
+
+    .grid {
+        max-width: 320px;
+        margin: 8px auto;
+    }
+
+    .tile {
+        font-size: 20px;
+    }
+
+    .tile .points {
+        font-size: 8px;
+    }
+
+    /* Buttons on mobile */
+    .buttons {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .buttons button {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+
+    /* Leaderboard on mobile */
+    .leaderboard-table,
+    .joining-list,
+    .final-standings {
+        max-height: 150px;
+        overflow-y: auto;
+    }
+
+    /* Words list on mobile */
+    .words-list {
+        max-height: 120px;
+    }
+
+    /* Radial progress on mobile */
+    .radial-progress {
+        width: 70px;
+        height: 70px;
+        font-size: 20px;
+    }
+
+    .radial-progress-container {
+        margin: 15px 0;
+        padding: 12px;
+    }
+
+    /* Instructions and multipliers */
+    .instructions p,
+    .multipliers p {
+        font-size: 12px;
+        margin: 6px 0;
+    }
+
+    /* Column headers */
+    .column h2 {
+        font-size: 12px;
+    }
+
+    .column h2 span {
+        font-size: 9px;
+    }
+}
+
+/* Extra small devices (phones in portrait) */
+@media screen and (max-width: 400px) {
+    .container {
+        padding: 8px;
+    }
+
+    .header-column.title h1 {
+        font-size: 16px;
+    }
+
+    .grid {
+        max-width: 280px;
+        gap: 4px;
+    }
+
+    .tile {
+        font-size: 18px;
+    }
+
+    .buttons button {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+}

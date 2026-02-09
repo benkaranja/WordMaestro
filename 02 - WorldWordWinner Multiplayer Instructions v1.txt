@@ -1,0 +1,35 @@
+I want to create a reddit devvit multiplayer game that runs on the webview component. The game is called World Word Winner .
+You should only proceed when the local version is fully working and consent is give to proceed to multiplayer setup. Refer to the document 01 - WorldWordWinner Multiplayer Word Game Local.txt to check if everything working.
+Important references;
+https://developers.reddit.com/docs/guides/ai
+https://developers.reddit.com/docs/llms.txt
+https://developers.reddit.com/docs/llms-full.txt
+https://developers.reddit.com/docs/
+
+I will use several checks to make sure we complete the game in a step by step manner. I would also like you to use git to track all code changes for better trouble shooting. Please follow the 10 steps as instructed.
+I want you to assist me in
+1. creating the project folder
+2. creating a basic devvit project. With the main,tsx and createpost tsx
+3. Read the game design document attached and create a readme.md file
+4. uploading the basic devvit project into an existing subreddit. The game name and start game button should be visible on the devvit post start UI main.tsx
+5. If successful, I will add the current locally working game into the webroot folder.
+6. Upload the basic game to test if the local game is working in the devvit environment.
+7. If successful, You shall start implementing multiplayer. This should be done by updating the multiplayerhelper.js in the webroot folder to communicate with devvit. We shall use the browser console to test each of this steps. Consider using demo data that updates every 5 seconds to test this steps.
+	It should be able to fetch players names from reddit. A player will be anyone on the reddit interactive post. 
+	It should be able to post the current scores and number of words created by each player into the devvit environment in realtime.
+	It should then fetch the other players scores and number of words created from devvit in realtime.
+	After game over (60 SECONDS), It should then show the current player game statistics, the top 5 best players and the count of words they completed.
+	I also want you to update the interactive post, devvit post start UI, with the current game statistics.
+	
+8. After successfully debugging the multiplayer functionality via the web browser, I want you to sync the devvit multiplayer functionality with the local webview game flow. !IMPORTANT. This can be done primarily via the multiplayerhelper.js in the webroot folder. The demo data that updates every 5 seconds should test this steps.
+	On the lobby (start screen), I want you to show the names of the players joining. Also update the number of players in the "50 players" Label. 
+	On the game screen, I want you to show in realtime, the leaderboard with top players names, their number of words created and their score.
+	On the end game screen, I want you to show a leaderboard with the top 5 players, their words created count, their scores.
+	I also want you to update the interactive post, devvit post start UI, with the current game statistics.
+9. After succesful multiplayer integration with the webview game. I want you to add in real players from reddit. I will interact with the game from different browser tabs to emulate differnt users.
+10. If successful I would like you to assist me with the submission process. The submission is for a a game jam and this are requiremtns of what to submit.
+		Video: a short (1-minute) walkthrough of your app (ignore this one)
+		App listing: include your unique app link (i.e. developers.reddit.com/apps/{app-name}), which is created after you upload your app to the Developer Platform. Include a detailed README.md in the root directory of your app that describes the game and how to play. See how to get started here. Please note, you do not need to publish your app in order to submit it for the hackathon.
+		Demo Post: include a link to your a) test subreddit b) a post running your game. Please make sure your subreddit is public, OR you can install this app into your subreddit to allow our team to join automatically. Our judges will be reviewing submissions on Desktop web for this contest.
+		Repo: provide a URL to your public code repository of the Project. If you would like to keep your repo private, you may add u/pl00h to your repo so our team has access.
+		Feedback: [Optional] complete our developer satisfaction survey to qualify for the Best Feedback prize.
