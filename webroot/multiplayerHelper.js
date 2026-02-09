@@ -1,18 +1,43 @@
 /**
  * Multiplayer Helper for World Word Winner
  * Handles communication between the webview and Devvit server
+ * 
+ * Message Protocol:
+ * - Webview → Devvit: postMessage to parent
+ * - Devvit → Webview: 'message' events with type/data
+ * 
+ * Server message types received:
+ *   init          - Initial state (username, phase, timeLeft, letters)
+ *   timeSync      - Every second (phase, timeLeft, gameId, letters)
+ *   phaseChange   - Phase transition (phase, timeLeft, finalScores?)
+ *   scoreUpdate   - Another player scored (username, word, score, leaderboard)
+ *   playerJoined  - Player joined (username, playerCount)
+ *   newCycle      - New 80s cycle started (full GameState)
+ *   leaderboard   - Leaderboard response
+ * 
+ * Client message types sent:
+ *   ready           - Webview loaded
+ *   joinGame        - Player wants to join
+ *   submitWord      - Word submission (word, score)
+ *   getLeaderboard  - Request current leaderboard
  */
 
 class MultiplayerHelper {
     constructor() {
         this.username = '';
-        this.gameState = null;
+        this.gameId = '';
+        this.phase = 'lobby';
+        this.timeLeft = 10;
+        this.letters = [];
         this.isDevvit = this.detectDevvit();
         this.callbacks = {
-            onGameStateUpdate: null,
-            onLeaderboardUpdate: null,
+            onInit: null,
+            onTimeSync: null,
+            onPhaseChange: null,
             onScoreUpdate: null,
             onPlayerJoined: null,
+            onNewCycle: null,
+            onLeaderboardUpdate: null,
         };
 
         if (this.isDevvit) {
@@ -36,30 +61,44 @@ class MultiplayerHelper {
      */
     setupDevvitListener() {
         window.addEventListener('message', (event) => {
-            const message = event.data;
+            const msg = event.data;
+            if (!msg || !msg.type) return;
 
-            if (!message || !message.type) return;
+            // Handle Devvit wrapper format
+            let message = msg;
+            if (msg.type === 'devvit-message' && msg.data?.message) {
+                message = msg.data.message;
+            }
 
             switch (message.type) {
                 case 'init':
-                    this.username = message.username || 'Anonymous';
-                    this.gameState = message.gameState;
-                    console.log('🎮 Initialized with username:', this.username);
-                    if (this.callbacks.onGameStateUpdate) {
-                        this.callbacks.onGameStateUpdate(this.gameState);
+                    this.username = message.data?.username || 'Player';
+                    this.phase = message.data?.phase || 'lobby';
+                    this.timeLeft = message.data?.timeLeft || 10;
+                    this.gameId = message.data?.gameId || '';
+                    this.letters = message.data?.letters || [];
+                    console.log('🎮 Initialized:', this.username, 'Phase:', this.phase);
+                    if (this.callbacks.onInit) {
+                        this.callbacks.onInit(message.data);
                     }
                     break;
 
-                case 'gameUpdate':
-                    this.gameState = message.data;
-                    if (this.callbacks.onGameStateUpdate) {
-                        this.callbacks.onGameStateUpdate(this.gameState);
+                case 'timeSync':
+                    this.phase = message.data?.phase || this.phase;
+                    this.timeLeft = message.data?.timeLeft ?? this.timeLeft;
+                    this.gameId = message.data?.gameId || this.gameId;
+                    this.letters = message.data?.letters || this.letters;
+                    if (this.callbacks.onTimeSync) {
+                        this.callbacks.onTimeSync(message.data);
                     }
                     break;
 
-                case 'leaderboard':
-                    if (this.callbacks.onLeaderboardUpdate) {
-                        this.callbacks.onLeaderboardUpdate(message.data);
+                case 'phaseChange':
+                    this.phase = message.data?.phase || this.phase;
+                    this.timeLeft = message.data?.timeLeft ?? this.timeLeft;
+                    console.log('🔄 Phase changed to:', this.phase);
+                    if (this.callbacks.onPhaseChange) {
+                        this.callbacks.onPhaseChange(message.data);
                     }
                     break;
 
@@ -72,6 +111,29 @@ class MultiplayerHelper {
                 case 'playerJoined':
                     if (this.callbacks.onPlayerJoined) {
                         this.callbacks.onPlayerJoined(message.data);
+                    }
+                    break;
+
+                case 'newCycle':
+                    this.gameId = message.data?.gameId || this.gameId;
+                    this.letters = message.data?.letters || this.letters;
+                    this.phase = 'lobby';
+                    this.timeLeft = 10;
+                    console.log('🔵 New game cycle started:', this.gameId);
+                    if (this.callbacks.onNewCycle) {
+                        this.callbacks.onNewCycle(message.data);
+                    }
+                    break;
+
+                case 'leaderboard':
+                    if (this.callbacks.onLeaderboardUpdate) {
+                        this.callbacks.onLeaderboardUpdate(message.data);
+                    }
+                    break;
+
+                case 'globalLeaderboard':
+                    if (this.callbacks.onGlobalLeaderboard) {
+                        this.callbacks.onGlobalLeaderboard(message.data);
                     }
                     break;
             }
@@ -97,11 +159,10 @@ class MultiplayerHelper {
         if (this.isDevvit) {
             this.sendToDevvit({
                 type: 'submitWord',
-                data: { word, score, username: this.username }
+                data: { word, score }
             });
         }
-        // In standalone mode, just log it
-        console.log(`📝 Submitted word: ${word} for ${score} points`);
+        console.log(`📝 Submitted: ${word} for ${score} pts`);
     }
 
     /**
@@ -118,10 +179,7 @@ class MultiplayerHelper {
      */
     joinGame() {
         if (this.isDevvit) {
-            this.sendToDevvit({
-                type: 'joinGame',
-                data: { username: this.username }
-            });
+            this.sendToDevvit({ type: 'joinGame' });
         }
     }
 
@@ -139,33 +197,15 @@ class MultiplayerHelper {
         return this.isDevvit;
     }
 
-    /**
-     * Register callback for game state updates
-     */
-    onGameStateUpdate(callback) {
-        this.callbacks.onGameStateUpdate = callback;
-    }
-
-    /**
-     * Register callback for leaderboard updates
-     */
-    onLeaderboardUpdate(callback) {
-        this.callbacks.onLeaderboardUpdate = callback;
-    }
-
-    /**
-     * Register callback for score updates from other players
-     */
-    onScoreUpdate(callback) {
-        this.callbacks.onScoreUpdate = callback;
-    }
-
-    /**
-     * Register callback for when players join
-     */
-    onPlayerJoined(callback) {
-        this.callbacks.onPlayerJoined = callback;
-    }
+    // Callback registrations
+    onInit(cb) { this.callbacks.onInit = cb; }
+    onTimeSync(cb) { this.callbacks.onTimeSync = cb; }
+    onPhaseChange(cb) { this.callbacks.onPhaseChange = cb; }
+    onScoreUpdate(cb) { this.callbacks.onScoreUpdate = cb; }
+    onPlayerJoined(cb) { this.callbacks.onPlayerJoined = cb; }
+    onNewCycle(cb) { this.callbacks.onNewCycle = cb; }
+    onLeaderboardUpdate(cb) { this.callbacks.onLeaderboardUpdate = cb; }
+    onGlobalLeaderboard(cb) { this.callbacks.onGlobalLeaderboard = cb; }
 }
 
 // Create global instance
