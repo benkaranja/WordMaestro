@@ -103,8 +103,10 @@ body {
 .column {
     background-color: #111517;
     border-radius: 5px;
-    padding: 10px;
-    height: 100%;
+    padding: 8px;
+    min-height: 0;
+    /* Allow flex children to shrink */
+    overflow: hidden;
 }
 
 .column:first-child,
@@ -213,16 +215,15 @@ body {
 .tile {
     position: relative;
     background-color: #1d2428;
-    aspect-ratio: 1;
     border-radius: 5px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 24px;
+    font-size: 22px;
     cursor: pointer;
     transition: background-color 0.2s ease;
     user-select: none;
-    /* Prevent text selection */
+    /* No aspect-ratio - let grid rows determine height */
 }
 
 .tile .points {
@@ -263,19 +264,17 @@ body {
 /* Buttons */
 .buttons {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     justify-content: center;
     flex-shrink: 0;
-    /* Don't shrink buttons container */
-    padding: 10px 0;
-    /* Add padding for visibility */
+    padding: 6px 0;
 }
 
 .buttons button {
-    padding: 12px 24px;
+    padding: 8px 20px;
     border: none;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
     color: #fff;
     background-color: #1a2327;
@@ -1553,11 +1552,11 @@ screen and (max-aspect-ratio: 1/1) {
         /* Move game area to top on mobile */
     }
 
-    /* Game area on mobile */
+    /* Game area on mobile - Devvit webview is ~343px wide on mobile */
     .game-area {
         width: 100%;
-        flex: 1;
-        min-height: 0;
+        flex: none;
+        /* Don't flex on mobile, use natural height */
     }
 
     .word-display {
@@ -1567,23 +1566,22 @@ screen and (max-aspect-ratio: 1/1) {
     }
 
     .grid {
-        width: 100%;
-        max-width: 280px;
-        /* Limit width for proper tile sizing */
+        width: 90%;
+        /* Use most of the width */
+        max-width: 400px;
         margin: 8px auto;
         gap: 6px;
-        flex: 0 0 auto;
-        /* Don't grow */
+        flex: none;
     }
 
     .tile {
-        font-size: 20px;
+        font-size: 22px;
         aspect-ratio: 1;
-        /* Keep square */
+        /* Square on mobile where we have scroll room */
     }
 
     .tile .points {
-        font-size: 8px;
+        font-size: 9px;
     }
 
     /* Buttons on mobile */
