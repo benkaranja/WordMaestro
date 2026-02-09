@@ -22,12 +22,12 @@ body {
     max-width: 100vw;
     max-height: 100vh;
     background-color: #090b0d;
-    padding: 15px;
+    padding: 10px;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    overflow: auto;
-    /* Changed from hidden to allow scrolling if needed */
+    overflow: hidden;
+    /* No scrollbar */
 }
 
 /* Screen Management */
@@ -55,7 +55,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+    /* Don't shrink header */
 }
 
 .header-column {
@@ -71,9 +73,11 @@ body {
 }
 
 .header-column.title h1 {
-    font-size: 20px;
+    font-size: 16px;
     margin: 0;
     font-weight: bold;
+    white-space: nowrap;
+    /* Keep on one line */
 }
 
 .header-column.title .time-left {
@@ -133,25 +137,27 @@ body {
 
 /* Game Area */
 .game-area {
-    height: 100%;
     display: flex;
     flex-direction: column;
-    overflow: visible;
-    /* Allow buttons to be visible */
+    flex: 1;
+    min-height: 0;
+    /* Allow flex children to shrink */
 }
 
 .word-display {
     position: relative;
     background-color: #333;
-    height: 53px;
+    height: 40px;
+    min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: bold;
     border-radius: 5px;
     margin-bottom: 0px;
     transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
 .word-display.feedback {
@@ -192,14 +198,16 @@ body {
 }
 
 .grid {
-    flex: 0 0 auto;
-    /* Don't grow or shrink, use content size */
+    flex: 1;
+    /* Take available space */
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 5px;
-    margin: 10px 0;
-    max-height: 260px;
-    /* Limit height to leave room for buttons */
+    grid-template-rows: repeat(4, 1fr);
+    /* Force 4 equal rows */
+    gap: 4px;
+    margin: 6px 0;
+    min-height: 0;
+    /* Allow shrinking */
 }
 
 .tile {
@@ -1548,30 +1556,34 @@ screen and (max-aspect-ratio: 1/1) {
     /* Game area on mobile */
     .game-area {
         width: 100%;
+        flex: 1;
+        min-height: 0;
     }
 
     .word-display {
-        height: 50px;
-        font-size: 22px;
+        height: 40px;
+        min-height: 40px;
+        font-size: 18px;
     }
 
     .grid {
         width: 100%;
-        max-width: 100%;
-        /* Use full width on mobile */
-        margin: 12px auto;
-        gap: 8px;
+        max-width: 280px;
+        /* Limit width for proper tile sizing */
+        margin: 8px auto;
+        gap: 6px;
+        flex: 0 0 auto;
+        /* Don't grow */
     }
 
     .tile {
-        font-size: 28px;
-        /* Larger font for mobile */
-        min-height: 60px;
-        /* Ensure minimum tap target */
+        font-size: 20px;
+        aspect-ratio: 1;
+        /* Keep square */
     }
 
     .tile .points {
-        font-size: 10px;
+        font-size: 8px;
     }
 
     /* Buttons on mobile */
