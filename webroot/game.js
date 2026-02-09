@@ -856,24 +856,22 @@ class WordBlitz {
 
     startTimer() {
         const startTime = Date.now();
-        const duration = this.timeLeft * 1000; // Convert to milliseconds
+        const duration = this.gameTime * 1000; // Convert to milliseconds
 
         this.timer = setInterval(() => {
             const elapsed = Date.now() - startTime;
             const remaining = duration - elapsed;
-            this.timeLeft = Math.ceil(remaining / 1000);
+            this.timeLeft = Math.max(0, Math.ceil(remaining / 1000));
 
-            // Update progress bar
-            if (this.progressBar) {
-                const progress = (remaining / duration) * 100;
-                this.progressBar.style.width = `${progress}%`;
-            }
+            // Update time display and progress bar
+            this.updateTimeDisplay();
 
             if (this.timeLeft <= 0) {
                 clearInterval(this.timer);
+                this.timer = null;
                 this.endGame();
             }
-        }, 100); // Update more frequently for smoother progress bar
+        }, 100); // Update frequently for smooth progress bar
     }
 
     calculateWordScore(word) {
