@@ -15,10 +15,10 @@ body {
     height: 100vh;
 }
 
-/* Base container */
+/* Base container - Devvit 'tall' post = 512px height, ~720px desktop width */
 .container {
     width: 720px;
-    height: 492px;
+    height: 512px;
     max-width: 100vw;
     max-height: 100vh;
     background-color: #090b0d;
@@ -27,7 +27,6 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    /* No scrollbar */
 }
 
 /* Screen Management */
@@ -1520,18 +1519,33 @@ screen and (max-aspect-ratio: 1/1) {
         padding: 10px;
     }
 
-    /* Header adjustments */
+    /* Header adjustments - prevent title overflow on ~344px mobile */
     .header {
-        flex-wrap: wrap;
-        margin-bottom: 10px;
+        flex-wrap: nowrap;
+        margin-bottom: 6px;
+        gap: 4px;
     }
 
     .header-column {
-        min-width: 80px;
+        min-width: 60px;
+        flex: 1;
+    }
+
+    .header-column.title {
+        flex: 2;
     }
 
     .header-column.title h1 {
-        font-size: 18px;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .header-column p {
+        font-size: 10px;
+    }
+
+    .header-column span {
+        font-size: 14px;
     }
 
     /* Stack columns vertically on mobile */
