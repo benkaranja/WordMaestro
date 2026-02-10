@@ -1,16 +1,18 @@
 {
-    "name": "world-word-winner",
-    "version": "0.0.1",
-    "description": "Global multiplayer word game for Reddit",
-    "main": "src/main.tsx",
-    "scripts": {
-        "dev": "devvit playtest",
-        "upload": "devvit upload",
-        "build": "tsc"
-    },
-    "devDependencies": {
-        "@devvit/public-api": "latest",
-        "typescript": "^5.0.0"
-    },
-    "dependencies": {}
+  "name": "world-wordwinner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Global multiplayer word game for Reddit",
+  "scripts": {
+    "dev": "devvit playtest r/WorldWordWinner",
+    "upload": "devvit upload",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@devvit/public-api": "0.12.12",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {},
+  "license": "BSD-3-Clause"
 }
