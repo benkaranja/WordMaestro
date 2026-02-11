@@ -1,11 +1,11 @@
 {
-  "name": "world-wordwinner",
+  "name": "word-maestro",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Global multiplayer word game for Reddit",
+  "description": "Word Maestro — multiplayer word game for Reddit",
   "scripts": {
-    "dev": "devvit playtest r/WorldWordWinner",
+    "dev": "devvit playtest r/WordMaestro",
     "upload": "devvit upload",
     "build": "tsc"
   },

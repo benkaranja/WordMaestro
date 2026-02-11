@@ -1,0 +1,11 @@
+name: word-maestro
+version: 0.0.1
+webroot: webroot
+blocks:
+  entry: src/main.tsx
+permissions:
+  redis: true
+  realtime: true
+  reddit: true
+dev:
+  subreddit: WordMaestro

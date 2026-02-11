@@ -1,4 +1,4 @@
-import { Devvit, useState, useChannel, useInterval } from '@devvit/public-api';
+import { Devvit, useState, useChannel, useInterval, useAsync } from '@devvit/public-api';
 
 // Configure Devvit with required capabilities
 Devvit.configure({
@@ -8,11 +8,12 @@ Devvit.configure({
 });
 
 // Game constants
-const GAME_DURATION = 60;       // seconds for gameplay
-const LOBBY_DURATION = 10;      // seconds for lobby countdown
-const END_SCREEN_DURATION = 10; // seconds for end/results screen
-const TOTAL_CYCLE = LOBBY_DURATION + GAME_DURATION + END_SCREEN_DURATION; // 80s total
-const MAX_PLAYERS = 50;         // Devvit realtime limit safety
+const GAME_DURATION = 60;
+const LOBBY_DURATION = 10;
+const END_SCREEN_DURATION = 10;
+const TOTAL_CYCLE = LOBBY_DURATION + GAME_DURATION + END_SCREEN_DURATION;
+const MAX_PLAYERS = 50;
+const MIN_PLAYERS = 1; // Set to 2 for production, 1 for solo testing
 
 // Redis keys
 const REDIS_KEYS = {
@@ -21,113 +22,101 @@ const REDIS_KEYS = {
     activePlayers: (gameId: string) => `game:${gameId}:players`,
     gameScores: (gameId: string) => `game:${gameId}:scores`,
     playerWords: (gameId: string, username: string) => `game:${gameId}:words:${username}`,
+    submittedWords: (gameId: string) => `game:${gameId}:submitted`,
     gameHistory: 'game:history',
 };
 
-// Game phases
 type GamePhase = 'lobby' | 'game' | 'end';
 
 interface GameState {
     phase: GamePhase;
     gameId: string;
-    cycleStartTime: number;  // When this 80s cycle started
+    cycleStartTime: number;
     letters: string[];
     playerCount: number;
+    [key: string]: any;
 }
 
-/**
- * Calculate current phase and time remaining from cycle start time
- */
 function getPhaseInfo(cycleStartTime: number): { phase: GamePhase; timeLeft: number; phaseElapsed: number } {
     const elapsed = Math.floor((Date.now() - cycleStartTime) / 1000);
-
     if (elapsed < LOBBY_DURATION) {
-        return {
-            phase: 'lobby',
-            timeLeft: LOBBY_DURATION - elapsed,
-            phaseElapsed: elapsed,
-        };
+        return { phase: 'lobby', timeLeft: LOBBY_DURATION - elapsed, phaseElapsed: elapsed };
     } else if (elapsed < LOBBY_DURATION + GAME_DURATION) {
         const gameElapsed = elapsed - LOBBY_DURATION;
-        return {
-            phase: 'game',
-            timeLeft: GAME_DURATION - gameElapsed,
-            phaseElapsed: gameElapsed,
-        };
+        return { phase: 'game', timeLeft: GAME_DURATION - gameElapsed, phaseElapsed: gameElapsed };
     } else if (elapsed < TOTAL_CYCLE) {
         const endElapsed = elapsed - LOBBY_DURATION - GAME_DURATION;
-        return {
-            phase: 'end',
-            timeLeft: END_SCREEN_DURATION - endElapsed,
-            phaseElapsed: endElapsed,
-        };
+        return { phase: 'end', timeLeft: END_SCREEN_DURATION - endElapsed, phaseElapsed: endElapsed };
     } else {
-        // Cycle has ended, start a new one
         return { phase: 'lobby', timeLeft: LOBBY_DURATION, phaseElapsed: 0 };
     }
 }
 
-/**
- * Generate balanced grid letters (5 vowels + 11 consonants = 16 tiles)
- */
 function generateLetters(): string[] {
     const vowels = ['A', 'E', 'I', 'O', 'U'];
     const consonants = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'];
-
-    // Shuffle and pick 11 consonants
     const shuffledConsonants = [...consonants].sort(() => Math.random() - 0.5).slice(0, 11);
     const letters = [...vowels, ...shuffledConsonants];
     return letters.sort(() => Math.random() - 0.5);
 }
 
-// Create custom post type
+// ============================================================
+// Helper: Always fetch fresh game state from Redis.
+// This avoids ALL stale-closure bugs.
+// ============================================================
+async function getFreshGameState(redis: any): Promise<GameState | null> {
+    const raw = await redis.get(REDIS_KEYS.currentGame);
+    if (!raw) return null;
+    return JSON.parse(raw) as GameState;
+}
+
+async function getOrFetchUsername(reddit: any, currentUsername: string): Promise<string> {
+    if (currentUsername) return currentUsername;
+    try {
+        const user = await reddit.getCurrentUser();
+        if (user?.username) return user.username;
+    } catch {
+        // Reddit API unavailable — fall through to guest name
+    }
+    // Generate a unique guest name to avoid collisions
+    const id = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `Player_${id}`;
+}
+
 Devvit.addCustomPostType({
-    name: 'World Word Winner',
-    description: 'A multiplayer word game - compete globally!',
+    name: 'Word Maestro',
+    description: 'Word Maestro — a multiplayer word game. Compete globally!',
     height: 'tall',
     render: (context) => {
         const { redis, realtime, reddit } = context;
-        const [username, setUsername] = useState<string>('');
-        const [gameState, setGameState] = useState<GameState | null>(null);
-
-        // Get current user on mount
-        useState(async () => {
-            const user = await reddit.getCurrentUser();
-            if (user) {
-                setUsername(user.username);
-            }
-
-            // Initialize or fetch game state
-            await initOrFetchGame();
+        // Fetch username once via useState initializer (runs once, no re-render loop)
+        const [username] = useState(async () => {
+            try {
+                const user = await reddit.getCurrentUser();
+                return user?.username || 'Guest';
+            } catch { return 'Guest'; }
         });
+        const [subscribed, setSubscribed] = useState(false);
+        // Unique session ID for this tab instance (handles same-user multi-tab)
+        const [sessionId] = useState(() => Math.random().toString(36).substring(2, 8));
 
-        /**
-         * Initialize game state from Redis or create a new cycle
-         */
-        const initOrFetchGame = async () => {
+        // Initialize game on first load
+        useAsync(async () => {
             const raw = await redis.get(REDIS_KEYS.currentGame);
-
             if (raw) {
                 const state = JSON.parse(raw) as GameState;
-                const { phase } = getPhaseInfo(state.cycleStartTime);
                 const elapsed = Math.floor((Date.now() - state.cycleStartTime) / 1000);
-
                 if (elapsed >= TOTAL_CYCLE) {
-                    // Cycle expired, start fresh
                     await createNewCycle();
-                } else {
-                    state.phase = phase;
-                    setGameState(state);
                 }
+                // Otherwise, existing cycle is fine
             } else {
                 await createNewCycle();
             }
-        };
+            return true;
+        });
 
-        /**
-         * Create a brand new game cycle
-         */
-        const createNewCycle = async () => {
+        async function createNewCycle() {
             const newGame: GameState = {
                 phase: 'lobby',
                 gameId: Date.now().toString(),
@@ -135,238 +124,284 @@ Devvit.addCustomPostType({
                 letters: generateLetters(),
                 playerCount: 0,
             };
+            console.log('🆕 Creating NEW game cycle:', newGame.gameId);
             await redis.set(REDIS_KEYS.currentGame, JSON.stringify(newGame));
-            setGameState(newGame);
+            // Clean up old keys (best effort)
+            try {
+                await redis.del(REDIS_KEYS.activePlayers(newGame.gameId));
+                await redis.del(REDIS_KEYS.submittedWords(newGame.gameId));
+                await redis.del(REDIS_KEYS.gameScores(newGame.gameId));
+            } catch { }
 
-            // Broadcast new cycle to all connected clients
-            await realtime.send('game-events', {
-                type: 'devvit-message',
-                data: {
-                    message: {
-                        type: 'newCycle',
-                        data: newGame,
-                    }
-                }
-            });
-        };
+            const newCyclePayload = {
+                type: 'devvit-message' as const,
+                data: { message: { type: 'newCycle', data: newGame } }
+            };
+            await realtime.send('game_events', newCyclePayload);
+            // Echo to self — postMessage already wraps in devvit-message, so send inner only
+            context.ui.webView.postMessage('game_webview', { type: 'newCycle', data: newGame });
+        }
 
-        // Poll every second to check phase transitions
+        // ============================================================
+        // TICKER: Runs every second. ALL state comes from Redis.
+        // ============================================================
         const ticker = useInterval(async () => {
-            if (!gameState) return;
+            try {
+                const state = await getFreshGameState(redis);
+                if (!state) return;
 
-            const { phase: currentPhase, timeLeft } = getPhaseInfo(gameState.cycleStartTime);
+                const elapsed = Math.floor((Date.now() - state.cycleStartTime) / 1000);
 
-            // Phase changed - update state
-            if (currentPhase !== gameState.phase) {
-                const updatedState = { ...gameState, phase: currentPhase };
-                setGameState(updatedState);
-
-                // If cycle ended, create new one
-                if (currentPhase === 'lobby' && gameState.phase === 'end') {
+                // CYCLE EXPIRED: Create a brand new cycle
+                if (elapsed >= TOTAL_CYCLE) {
                     await createNewCycle();
+                    return;
                 }
 
-                // When game phase starts, broadcast
-                if (currentPhase === 'game' && gameState.phase === 'lobby') {
-                    await realtime.send('game-events', {
-                        type: 'devvit-message',
-                        data: {
-                            message: {
-                                type: 'phaseChange',
-                                data: { phase: 'game', timeLeft: GAME_DURATION }
-                            }
-                        }
-                    });
-                }
+                const { phase, timeLeft } = getPhaseInfo(state.cycleStartTime);
+                let nextPhase = phase;
+                let nextCycleStart = state.cycleStartTime;
 
-                // When end phase starts, send final scores
-                if (currentPhase === 'end' && gameState.phase === 'game') {
-                    // Fetch and broadcast final scores
-                    const scores = await redis.zRange(
-                        REDIS_KEYS.gameScores(gameState.gameId), 0, 10,
-                        { reverse: true, by: 'rank' }
-                    );
-                    await realtime.send('game-events', {
-                        type: 'devvit-message',
-                        data: {
-                            message: {
-                                type: 'phaseChange',
-                                data: {
-                                    phase: 'end',
-                                    timeLeft: END_SCREEN_DURATION,
-                                    finalScores: scores,
-                                }
-                            }
+                // Phase transition logic
+                if (phase !== state.phase) {
+                    if (state.phase === 'lobby' && phase === 'game') {
+                        const playerCount = await redis.zCard(REDIS_KEYS.activePlayers(state.gameId));
+                        if (playerCount < MIN_PLAYERS) {
+                            // Not enough players, restart lobby
+                            nextCycleStart = Date.now();
+                            nextPhase = 'lobby';
                         }
-                    });
-
-                    // Update global leaderboard
-                    for (const entry of scores) {
-                        const currentGlobal = await redis.zScore(REDIS_KEYS.globalLeaderboard, entry.member) || 0;
-                        await redis.zAdd(REDIS_KEYS.globalLeaderboard, {
-                            member: entry.member,
-                            score: currentGlobal + entry.score,
-                        });
                     }
-                }
-            }
+                    // Save updated state
+                    const newState = { ...state, phase: nextPhase, cycleStartTime: nextCycleStart };
+                    await redis.set(REDIS_KEYS.currentGame, JSON.stringify(newState));
 
-            // Send time sync to webview
-            context.ui.webView.postMessage('game-webview', {
-                type: 'timeSync',
-                data: {
-                    phase: currentPhase,
-                    timeLeft,
-                    gameId: gameState.gameId,
-                    letters: gameState.letters,
+                    // Broadcast phase change
+                    const phaseData = { phase: nextPhase, newState, timeLeft: getPhaseInfo(nextCycleStart).timeLeft };
+                    const phasePayload = {
+                        type: 'devvit-message' as const,
+                        data: { message: { type: 'phaseChange', data: phaseData } }
+                    };
+                    await realtime.send('game_events', phasePayload);
+                    // postMessage already wraps, so send inner only
+                    context.ui.webView.postMessage('game_webview', { type: 'phaseChange', data: phaseData });
+                    return;
                 }
-            });
+
+                // Normal tick: send timeSync directly to local webview
+                const info = getPhaseInfo(nextCycleStart);
+                context.ui.webView.postMessage('game_webview', {
+                    type: 'timeSync',
+                    data: { phase: info.phase, timeLeft: info.timeLeft, gameId: state.gameId }
+                });
+
+                // Broadcast to others
+                await realtime.send('game_events', {
+                    type: 'devvit-message',
+                    data: {
+                        message: {
+                            type: 'timeSync',
+                            data: { phase: info.phase, timeLeft: info.timeLeft, gameId: state.gameId }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Ticker Error:', e);
+            }
         }, 1000);
 
         ticker.start();
 
-        // Subscribe to realtime updates from other players
+        // ============================================================
+        // CHANNEL: Forward realtime messages from others to webview
+        // ============================================================
         const channel = useChannel({
-            name: 'game-events',
+            name: 'game_events',
             onMessage: (msg: any) => {
-                // Forward realtime messages to webview
-                if (msg.type === 'devvit-message' && msg.data?.message) {
-                    context.ui.webView.postMessage('game-webview', msg.data.message);
+                // Channel messages arrive wrapped: { type: 'devvit-message', data: { message: {...} } }
+                // postMessage ALSO wraps in devvit-message, so unwrap first
+                if (msg?.type === 'devvit-message' && msg?.data?.message) {
+                    context.ui.webView.postMessage('game_webview', msg.data.message);
+                } else {
+                    context.ui.webView.postMessage('game_webview', msg);
                 }
             },
         });
 
-        channel.subscribe();
+        if (!subscribed) {
+            channel.subscribe();
+            setSubscribed(true);
+        }
 
-        // Handle messages from webview
+        // ============================================================
+        // WEBVIEW MESSAGE HANDLER
+        // CRITICAL: NEVER use stale closures. Always fetch from Redis.
+        // ============================================================
         const handleWebviewMessage = async (message: any) => {
             if (!message || !message.type) return;
 
+            // Use the username from useState (stable, set once)
+            const currentUsername = username || 'Guest';
+
             switch (message.type) {
                 case 'ready': {
-                    // Webview loaded - send current state
-                    if (gameState) {
-                        const { phase, timeLeft } = getPhaseInfo(gameState.cycleStartTime);
-                        context.ui.webView.postMessage('game-webview', {
-                            type: 'init',
-                            data: {
-                                username: username || 'Player',
-                                phase,
-                                timeLeft,
-                                gameId: gameState.gameId,
-                                letters: gameState.letters,
-                            }
-                        });
-                    }
+                    // Fetch FRESH state from Redis (never use closure)
+                    const state = await getFreshGameState(redis);
+                    if (!state) break;
+
+                    const { phase, timeLeft } = getPhaseInfo(state.cycleStartTime);
+
+                    // Fetch current player list
+                    const players = await redis.zRange(
+                        REDIS_KEYS.activePlayers(state.gameId), 0, 9, { reverse: true, by: 'rank' }
+                    );
+
+                    context.ui.webView.postMessage('game_webview', {
+                        type: 'init',
+                        data: {
+                            username: currentUsername,
+                            phase,
+                            timeLeft,
+                            gameId: state.gameId,
+                            letters: state.letters,
+                            // Strip session suffix from display names
+                            players: players.map((p: any) => ({
+                                name: p.member.includes(':') ? p.member.split(':')[0] : p.member,
+                                status: 'online'
+                            }))
+                        }
+                    });
                     break;
                 }
 
                 case 'joinGame': {
-                    // Track player joining
-                    if (gameState) {
-                        const playerCount = await redis.sCard(REDIS_KEYS.activePlayers(gameState.gameId));
-                        if (playerCount < MAX_PLAYERS) {
-                            await redis.sAdd(REDIS_KEYS.activePlayers(gameState.gameId), [username]);
-                            const newCount = await redis.sCard(REDIS_KEYS.activePlayers(gameState.gameId));
-
-                            // Broadcast player joined
-                            await realtime.send('game-events', {
-                                type: 'devvit-message',
-                                data: {
-                                    message: {
-                                        type: 'playerJoined',
-                                        data: { username, playerCount: newCount }
-                                    }
-                                }
-                            });
-                        }
+                    // Fetch FRESH state from Redis (never use closure)
+                    const state = await getFreshGameState(redis);
+                    if (!state) {
+                        console.error('❌ joinGame: No game state in Redis!');
+                        break;
                     }
+
+                    const playerCount = await redis.zCard(REDIS_KEYS.activePlayers(state.gameId));
+                    if (playerCount >= MAX_PLAYERS) break;
+
+                    // Use sessionId suffix to make same-user multi-tab count as separate players
+                    const playerKey = `${currentUsername}:${sessionId}`;
+
+                    // IDEMPOTENT: Skip if already joined this game
+                    const existingScore = await redis.zScore(REDIS_KEYS.activePlayers(state.gameId), playerKey);
+                    if (existingScore !== undefined) {
+                        // Already in game, just send current count
+                        const currentCount = await redis.zCard(REDIS_KEYS.activePlayers(state.gameId));
+                        context.ui.webView.postMessage('game_webview', {
+                            type: 'playerJoined',
+                            data: { username: currentUsername, playerCount: currentCount }
+                        });
+                        break;
+                    }
+
+                    console.log(`✅ Player joining: ${currentUsername} (key: ${playerKey}, game: ${state.gameId})`);
+
+                    // Add player to Redis with timestamp score
+                    await redis.zAdd(REDIS_KEYS.activePlayers(state.gameId), {
+                        member: playerKey,
+                        score: Date.now()
+                    });
+
+                    const newCount = await redis.zCard(REDIS_KEYS.activePlayers(state.gameId));
+                    console.log(`👥 Total players now: ${newCount}`);
+
+                    const joinData = { username: currentUsername, playerCount: newCount };
+                    const joinPayload = {
+                        type: 'devvit-message' as const,
+                        data: { message: { type: 'playerJoined', data: joinData } }
+                    };
+
+                    // Broadcast to others
+                    await realtime.send('game_events', joinPayload);
+                    // Echo to self — postMessage already wraps
+                    context.ui.webView.postMessage('game_webview', { type: 'playerJoined', data: joinData });
                     break;
                 }
 
                 case 'submitWord': {
-                    // Process word submission
+                    const state = await getFreshGameState(redis);
+                    if (!state) break;
+
                     const { word, score } = message.data;
-                    if (!gameState || !word || !score) break;
+                    if (!word || !score) break;
 
-                    const { phase } = getPhaseInfo(gameState.cycleStartTime);
-                    if (phase !== 'game') break; // Only accept during game phase
+                    const { phase } = getPhaseInfo(state.cycleStartTime);
+                    if (phase !== 'game') break;
 
-                    // Check if word already submitted by this player
-                    const alreadySubmitted = await redis.sIsMember(
-                        REDIS_KEYS.playerWords(gameState.gameId, username), word
-                    );
-                    if (alreadySubmitted) break;
+                    // Use session-keyed username for score tracking
+                    const scoreKey = `${currentUsername}:${sessionId}`;
 
-                    // Record the word
-                    await redis.sAdd(REDIS_KEYS.playerWords(gameState.gameId, username), [word]);
+                    // Check global duplicate
+                    const globalCheck = await redis.zScore(REDIS_KEYS.submittedWords(state.gameId), word);
+                    if (globalCheck !== undefined) break;
 
-                    // Update player score (cumulative)
-                    const currentScore = await redis.zScore(
-                        REDIS_KEYS.gameScores(gameState.gameId), username
-                    ) || 0;
-                    await redis.zAdd(REDIS_KEYS.gameScores(gameState.gameId), {
-                        member: username,
-                        score: currentScore + score,
-                    });
+                    // Check personal duplicate
+                    const personalCheck = await redis.zScore(REDIS_KEYS.playerWords(state.gameId, currentUsername), word);
+                    if (personalCheck !== undefined) break;
 
-                    // Get updated leaderboard (top 6)
+                    // Record word
+                    await redis.zAdd(REDIS_KEYS.submittedWords(state.gameId), { member: word, score: Date.now() });
+                    await redis.zAdd(REDIS_KEYS.playerWords(state.gameId, currentUsername), { member: word, score: 0 });
+
+                    // Update score (use scoreKey so session-suffixed names show in leaderboard)
+                    const currentScore = await redis.zScore(REDIS_KEYS.gameScores(state.gameId), scoreKey) || 0;
+                    const newTotal = currentScore + score;
+                    await redis.zAdd(REDIS_KEYS.gameScores(state.gameId), { member: scoreKey, score: newTotal });
+
+                    // Get leaderboard
                     const topScores = await redis.zRange(
-                        REDIS_KEYS.gameScores(gameState.gameId), 0, 5,
-                        { reverse: true, by: 'rank' }
+                        REDIS_KEYS.gameScores(state.gameId), 0, 5, { reverse: true, by: 'rank' }
                     );
 
-                    // Broadcast score update to all players
-                    await realtime.send('game-events', {
-                        type: 'devvit-message',
-                        data: {
-                            message: {
-                                type: 'scoreUpdate',
-                                data: {
-                                    username,
-                                    word,
-                                    score,
-                                    totalScore: currentScore + score,
-                                    leaderboard: topScores,
-                                }
-                            }
-                        }
-                    });
+                    const scoreData = { username: currentUsername, word, score, totalScore: newTotal, leaderboard: topScores };
+                    const scorePayload = {
+                        type: 'devvit-message' as const,
+                        data: { message: { type: 'scoreUpdate', data: scoreData } }
+                    };
+
+                    // Broadcast to others
+                    await realtime.send('game_events', scorePayload);
+                    // Echo to self — postMessage already wraps
+                    context.ui.webView.postMessage('game_webview', { type: 'scoreUpdate', data: scoreData });
                     break;
                 }
 
                 case 'getLeaderboard': {
-                    if (gameState) {
-                        const scores = await redis.zRange(
-                            REDIS_KEYS.gameScores(gameState.gameId), 0, 10,
-                            { reverse: true, by: 'rank' }
-                        );
-                        context.ui.webView.postMessage('game-webview', {
-                            type: 'leaderboard',
-                            data: scores,
-                        });
-                    }
+                    const state = await getFreshGameState(redis);
+                    if (!state) break;
+
+                    const scores = await redis.zRange(
+                        REDIS_KEYS.gameScores(state.gameId), 0, 10, { reverse: true, by: 'rank' }
+                    );
+                    context.ui.webView.postMessage('game_webview', { type: 'leaderboard', data: scores });
                     break;
                 }
 
                 case 'getGlobalLeaderboard': {
                     const globalScores = await redis.zRange(
-                        REDIS_KEYS.globalLeaderboard, 0, 10,
-                        { reverse: true, by: 'rank' }
+                        REDIS_KEYS.globalLeaderboard, 0, 10, { reverse: true, by: 'rank' }
                     );
-                    context.ui.webView.postMessage('game-webview', {
-                        type: 'globalLeaderboard',
-                        data: globalScores,
-                    });
+                    context.ui.webView.postMessage('game_webview', { type: 'globalLeaderboard', data: globalScores });
+                    break;
+                }
+
+                case 'log': {
+                    console.log(`[WebView]:`, message.data);
                     break;
                 }
             }
         };
 
         return (
-            <vstack height="100%" width="100%" backgroundColor="#0e1113">
+            <vstack height="100%" width="100%" backgroundColor="#0e1113" alignment="center middle">
                 <webview
-                    id="game-webview"
+                    id="game_webview"
                     url="index.html"
                     width="100%"
                     height="100%"
@@ -377,25 +412,22 @@ Devvit.addCustomPostType({
     },
 });
 
-// Menu action to create game post
 Devvit.addMenuItem({
-    label: 'Create World Word Winner Game',
+    label: 'Create Word Maestro Game',
     location: 'subreddit',
     forUserType: 'moderator',
     onPress: async (_, context) => {
         const { reddit, ui } = context;
         const subreddit = await reddit.getCurrentSubreddit();
-
         const post = await reddit.submitPost({
-            title: '🎮 World Word Winner - Join the Global Word Battle!',
+            title: '🎮 Word Maestro - Join the Global Word Battle!',
             subredditName: subreddit.name,
             preview: (
                 <vstack alignment="center middle" height="100%" backgroundColor="#0e1113">
-                    <text size="xlarge" color="white">Loading World Word Winner...</text>
+                    <text size="xlarge" color="white">Loading Word Maestro...</text>
                 </vstack>
             ),
         });
-
         ui.showToast({ text: 'Game created! Check the new post.' });
         ui.navigateTo(post);
     },

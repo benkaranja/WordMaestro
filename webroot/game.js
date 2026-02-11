@@ -20,41 +20,7 @@ const WORD_MULTIPLIERS = {
 const VOWELS = ['A', 'E', 'I', 'O', 'U'];
 const CONSONANTS = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'];
 
-// Dummy Players Data Structure
-const DUMMY_PLAYERS = {
-    // All players (for total count)
-    totalPlayers: 50,
 
-    // Players in joining state (for lobby screen) - keep most recent 7
-    joiningPlayers: [
-        { id: 44, name: "WordNinja", status: "ready" },
-        { id: 45, name: "Wordsworth", status: "ready" },
-        { id: 46, name: "SpellSeeker", status: "ready" },
-        { id: 47, name: "LexiQuest", status: "joining" },
-        { id: 48, name: "WordWeaver", status: "joining" },
-        { id: 49, name: "AlphaKing", status: "joining" },
-        { id: 50, name: "VocabVirtuoso", status: "joining" }
-    ],
-
-    // Active players for main game screen leaderboard - top 6
-    activePlayers: [
-        { id: 1, name: "WordMaster", wordsFound: 12, score: 345 },
-        { id: 2, name: "LexiconPro", wordsFound: 10, score: 298 },
-        { id: 3, name: "WordSmith", wordsFound: 9, score: 276 },
-        { id: 4, name: "Spellbound", wordsFound: 8, score: 245 },
-        { id: 5, name: "WordWizard", wordsFound: 7, score: 234 },
-        { id: 6, name: "LetterLord", wordsFound: 7, score: 212 }
-    ],
-
-    // Final standings (for end screen) - top 5 only
-    finalStandings: [
-        { id: 1, name: "WordMaster", wordsFound: 12, score: 345, rank: 1 },
-        { id: 2, name: "LexiconPro", wordsFound: 10, score: 298, rank: 2 },
-        { id: 3, name: "WordSmith", wordsFound: 9, score: 276, rank: 3 },
-        { id: 4, name: "Spellbound", wordsFound: 8, score: 245, rank: 4 },
-        { id: 5, name: "WordWizard", wordsFound: 7, score: 234, rank: 5 }
-    ]
-};
 
 class AudioManager {
     constructor() {
@@ -187,9 +153,40 @@ class AudioManager {
     }
 }
 
-class WordBlitz {
+class WordMaestro {
     constructor() {
-        console.log('🎮 Initializing WordBlitz game...');
+        // Initialize multiplayer helper first to enable logging
+        this.multiplayer = new MultiplayerHelper();
+        console.log('🎮 Initializing WordMaestro game...');
+
+        // Verify multiplayer connection
+        this.multiplayer.onInit((data) => {
+            console.log('✅ Received init data:', data);
+            this.handleInit(data);
+        });
+
+        this.multiplayer.onPlayerJoined((data) => {
+            console.log('👤 Player joined:', data);
+            this.handlePlayerJoined(data);
+        });
+
+        this.multiplayer.onPhaseChange((data) => {
+            console.log('🔄 Phase change:', data);
+            this.handlePhaseChange(data);
+        });
+
+        this.multiplayer.onScoreUpdate((data) => {
+            // console.log('🏆 Score update:', data);
+            this.handleScoreUpdate(data);
+        });
+
+        this.multiplayer.onLeaderboard((data) => {
+            this.handleLeaderboard(data);
+        });
+
+        this.multiplayer.onTimeSync((data) => {
+            this.handleTimeSync(data);
+        });
 
         // Cache DOM elements in constructor
         this.domElements = {
@@ -248,6 +245,11 @@ class WordBlitz {
         this.currentScreen = 'start';
         this.audioInitialized = false;
 
+        // Multiplayer state
+        this.players = [];
+        this.playerCount = 0;
+        this.leaderboard = [];
+
         // Initialize grid letters
         this.gridLetters = this.generateGridLetters();
 
@@ -259,11 +261,15 @@ class WordBlitz {
         this.loadDictionary()
             .then(() => {
                 console.log('📚 Dictionary loaded successfully');
-                this.showLobbyScreen();
+                // Ensure we don't show any screen until we get data
+                if (!this.phase) {
+                    this.showLobbyScreen(); // Show lobby as fallback/loading state
+                    this.updateLobbyScreenPlayers(); // Show "Connecting..."
+                }
             })
             .catch(error => {
                 console.error('❌ Failed to initialize game:', error);
-                this.showLobbyScreen();
+                // this.showLobbyScreen();
             });
 
         // Initialize audio with safety checks
@@ -373,27 +379,10 @@ class WordBlitz {
 
         const lobbyCountdown = document.querySelector('.lobby-screen .radial-progress');
         if (lobbyCountdown) {
-            let countdown = 10;
-            let progress = 360;
-
-            lobbyCountdown.textContent = countdown;
+            // Initial render, but updates come from server
+            const progress = (this.timeLeft / 10) * 360;
+            lobbyCountdown.textContent = this.timeLeft;
             lobbyCountdown.style.setProperty('--progress', `${progress}deg`);
-
-            this.lobbyTimer = setInterval(() => {
-                countdown--;
-                progress = (countdown / 10) * 360;
-
-                if (lobbyCountdown) {
-                    lobbyCountdown.textContent = countdown;
-                    lobbyCountdown.style.setProperty('--progress', `${progress}deg`);
-                }
-
-                if (countdown <= 0) {
-                    clearInterval(this.lobbyTimer);
-                    this.lobbyTimer = null;
-                    this.showGameScreen();
-                }
-            }, 1000);
         }
 
         this.updateLobbyScreenPlayers();
@@ -409,33 +398,17 @@ class WordBlitz {
     showEndScreen() {
         // Clear ALL intervals before showing end screen
         this.cleanup();
+        this.gameActive = false;
         this.updateEndScreenStats();
         this.showScreen('end');
 
+        // End screen countdown is driven by server timeSync (no local timer)
+        // Just set initial display
         const endCountdown = document.querySelector('.end-screen .radial-progress');
         if (endCountdown) {
-            let countdown = 10;
-            let progress = 360;
-
-            endCountdown.textContent = countdown;
+            endCountdown.textContent = this.timeLeft || 10;
+            const progress = ((this.timeLeft || 10) / 10) * 360;
             endCountdown.style.setProperty('--progress', `${progress}deg`);
-
-            this.endTimer = setInterval(() => {
-                countdown--;
-                progress = (countdown / 10) * 360;
-
-                if (endCountdown) {
-                    endCountdown.textContent = countdown;
-                    endCountdown.style.setProperty('--progress', `${progress}deg`);
-                }
-
-                if (countdown <= 0) {
-                    clearInterval(this.endTimer);
-                    this.endTimer = null;
-                    this.resetGameState();  // Only reset state, don't call showLobbyScreen
-                    this.showLobbyScreen(); // Let this handle its own timer
-                }
-            }, 1000);
         }
 
         this.updateFinalStandings();
@@ -452,9 +425,14 @@ class WordBlitz {
         this.score = 0;
         this.wordsFound = 0;
         this.usedWords.clear();
-        this.timeLeft = this.gameTime;
         this.currentWord = '';
         this.selectedTiles = [];
+
+        // Use server timeLeft if available, only default to gameTime as fallback
+        if (!this.timeLeft || this.timeLeft <= 0 || this.timeLeft > this.gameTime) {
+            this.timeLeft = this.gameTime;
+        }
+        // Note: this.timeLeft was set by handleInit/handleTimeSync from server
 
         // Update displays
         if (this.scoreDisplay) {
@@ -473,8 +451,10 @@ class WordBlitz {
             wordsList.innerHTML = '';
         }
 
-        // Initialize grid
-        this.gridLetters = this.generateGridLetters();
+        // Use SERVER letters if available, only generate locally as fallback
+        if (!this.gridLetters || this.gridLetters.length === 0) {
+            this.gridLetters = this.generateGridLetters();
+        }
         this.initializeGrid();
 
         // Start timer (single timer, not duplicate)
@@ -652,9 +632,12 @@ class WordBlitz {
         this.score += wordScore;
 
         // Submit to multiplayer server if available
-        if (window.multiplayerHelper && window.multiplayerHelper.isMultiplayer()) {
-            window.multiplayerHelper.submitWord(word, wordScore);
+        if (this.multiplayer && this.multiplayer.isMultiplayer()) {
+            this.multiplayer.submitWord(word, wordScore);
         }
+
+        // Track player stats for end screen
+        this.updatePlayerStats(word, wordScore);
 
         // Update score display
         const scoreDisplay = document.querySelector('.header-column:last-child span');
@@ -669,6 +652,12 @@ class WordBlitz {
         const wordsFoundDisplay = document.querySelector('.header-column:first-child span');
         if (wordsFoundDisplay) {
             wordsFoundDisplay.textContent = this.wordsFound;
+        }
+
+        // Update words found column header
+        const wordsHeader = document.querySelector('.game-screen .column:last-child h2 span');
+        if (wordsHeader) {
+            wordsHeader.textContent = `| ${this.wordsFound} Words`;
         }
 
         // Add word to list
@@ -763,7 +752,16 @@ class WordBlitz {
     async loadDictionary() {
         console.log('📖 Loading dictionary...');
         try {
-            const response = await fetch('dictionary.json');
+            // Race fetch against a 5s timeout
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Dictionary load timeout')), 5000)
+            );
+
+            const response = await Promise.race([
+                fetch('dictionary.json'),
+                timeoutPromise
+            ]);
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -854,13 +852,69 @@ class WordBlitz {
         }
     }
 
+
+
+    // Cache DOM elements in constructor
+
+    // ... (inside class)
+
+    handleTimeSync(data) {
+        if (data.timeLeft !== undefined) {
+            this.timeLeft = data.timeLeft;
+        }
+
+        // Detect phase transitions from server
+        if (data.phase && data.phase !== this.phase) {
+            const oldPhase = this.phase;
+            this.phase = data.phase;
+
+            if (this.phase === 'game' && oldPhase !== 'game') {
+                this.showGameScreen();
+            } else if (this.phase === 'end' && oldPhase !== 'end') {
+                this.showEndScreen();
+            } else if (this.phase === 'lobby' && oldPhase !== 'lobby') {
+                this._hasJoined = false; // Allow re-join on new lobby cycle
+                this.resetGameState();
+                this.showLobbyScreen();
+            }
+        }
+
+        // Always update displays
+        this.updateTimeDisplay();
+        this.updateLobbyTimer();
+
+        // Update end screen countdown if on end screen
+        if (this.phase === 'end') {
+            const endCountdown = document.querySelector('.end-screen .radial-progress');
+            if (endCountdown) {
+                endCountdown.textContent = this.timeLeft;
+                const progress = (this.timeLeft / 10) * 360;
+                endCountdown.style.setProperty('--progress', `${progress}deg`);
+            }
+        }
+    }
+
+    updateLobbyTimer() {
+        const lobbyCountdown = document.querySelector('.lobby-screen .radial-progress');
+        if (lobbyCountdown) {
+            const progress = (this.timeLeft / 10) * 360;
+            lobbyCountdown.textContent = this.timeLeft;
+            lobbyCountdown.style.setProperty('--progress', `${progress}deg`);
+        }
+    }
+
     startTimer() {
+        if (this.timer) clearInterval(this.timer);
+
+        // Use CURRENT timeLeft, not full duration
+        let duration = this.timeLeft * 1000;
         const startTime = Date.now();
-        const duration = this.gameTime * 1000; // Convert to milliseconds
 
         this.timer = setInterval(() => {
             const elapsed = Date.now() - startTime;
             const remaining = duration - elapsed;
+
+            // Actually, simple decrement is safer if we get external updates
             this.timeLeft = Math.max(0, Math.ceil(remaining / 1000));
 
             // Update time display and progress bar
@@ -869,9 +923,11 @@ class WordBlitz {
             if (this.timeLeft <= 0) {
                 clearInterval(this.timer);
                 this.timer = null;
+                // Don't auto-end game on client? Wait for server phase change?
+                // Better safe:
                 this.endGame();
             }
-        }, 100); // Update frequently for smooth progress bar
+        }, 100);
     }
 
     calculateWordScore(word) {
@@ -1015,6 +1071,62 @@ class WordBlitz {
         this.tiles = Array.from(document.querySelectorAll('.tile'));
     }
 
+    handleScoreUpdate(data) {
+        // Update local leaderboard from live score updates
+        if (data.leaderboard) {
+            this.leaderboardData = data.leaderboard;
+            // Update the visible in-game leaderboard immediately
+            this.updateLeaderboard();
+        }
+
+        // Show notification and add opponent word to Words Found list
+        if (data.username && data.word && data.username !== this.username) {
+            this.showOpponentWordNotification(data.username, data.word, data.score);
+            this.addOpponentWordToList(data.username, data.word, data.score);
+        }
+    }
+
+    addOpponentWordToList(playerName, word, score) {
+        const wordsList = document.querySelector('.words-list');
+        if (!wordsList) return;
+
+        const wordItem = document.createElement('div');
+        wordItem.className = 'word-item opponent-word';
+        wordItem.innerHTML = `
+            <span class="word"><small class="opponent-label">${playerName}:</small> ${word}</span>
+            <span class="score">${score}</span>
+        `;
+
+        if (wordsList.firstChild) {
+            wordsList.insertBefore(wordItem, wordsList.firstChild);
+        } else {
+            wordsList.appendChild(wordItem);
+        }
+    }
+
+    showOpponentWordNotification(playerName, word, score) {
+        const notification = document.createElement('div');
+        notification.className = 'opponent-word-notification';
+        notification.innerHTML = `<strong>${playerName}</strong> found <em>${word}</em> (+${score})`;
+        notification.style.cssText = `
+            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: #4ade80; padding: 6px 16px;
+            border-radius: 20px; font-size: 12px; z-index: 9999;
+            animation: slideDown 0.3s ease, fadeOut 0.5s ease 1.5s forwards;
+            pointer-events: none; white-space: nowrap;
+        `;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 2000);
+    }
+
+    // NOTE: handleScoreUpdate is defined ONCE above. Do NOT duplicate.
+
+    handleLeaderboard(data) {
+        this.leaderboardData = data;
+        // Render directly — do NOT call updateFinalStandings (that would re-request)
+        this.renderFinalStandings();
+    }
+
     // Reset only game state, no navigation
     resetGameState() {
         // Reset game state
@@ -1025,6 +1137,14 @@ class WordBlitz {
         this.usedWords.clear();
         this.timeLeft = this.gameTime;
         this.gameActive = false;
+
+        // Clear ALL multiplayer data for new session
+        this.leaderboardData = null;
+        this.leaderboard = []; // Clear legacy field too
+        this.gridLetters = []; // Will be set by server via newCycle/init
+        this.recentPlayers = [];
+        this.foundWords = [];
+        this.playerStats = { wordsFound: 0, longestWord: '', highestScoringWord: '', highestScore: 0 };
 
         // Reset UI elements
         if (this.wordDisplay) {
@@ -1061,10 +1181,6 @@ class WordBlitz {
                 tile.classList.remove('active');
             });
         }
-
-        // Generate new grid letters
-        this.gridLetters = this.generateGridLetters();
-        this.initializeGrid();
     }
 
     // Full reset with navigation to lobby
@@ -1088,6 +1204,85 @@ class WordBlitz {
         });
     }
 
+    handleInit(data) {
+        this.username = data.username;
+        this.phase = data.phase;
+        this.timeLeft = data.timeLeft;
+
+        // Track if this is a new game cycle
+        const isNewGame = data.gameId && data.gameId !== this.gameId;
+        this.gameId = data.gameId;
+
+        // Store server letters for use by startGame
+        if (data.letters && data.letters.length > 0) {
+            this.gridLetters = data.letters;
+        }
+
+        // Initialize players list (deduplicated)
+        if (data.players && Array.isArray(data.players)) {
+            const seen = new Set();
+            this.recentPlayers = data.players.filter(p => {
+                if (seen.has(p.name)) return false;
+                seen.add(p.name);
+                return true;
+            }).map(p => ({ name: p.name, status: 'online' }));
+            this.playerCount = this.recentPlayers.length;
+        }
+
+        // Show appropriate screen
+        if (this.phase === 'lobby') {
+            this.showLobbyScreen();
+        } else if (this.phase === 'game') {
+            this.showGameScreen();
+        } else if (this.phase === 'end') {
+            this.showEndScreen();
+        }
+
+        // Join only once per gameId to prevent duplicates
+        if (isNewGame || !this._hasJoined) {
+            this.multiplayer.joinGame();
+            this._hasJoined = true;
+        }
+    }
+
+    handlePlayerJoined(data) {
+        this.playerCount = data.playerCount;
+
+        // Add to recent players list (deduplicate by name)
+        if (!this.recentPlayers) this.recentPlayers = [];
+        const alreadyExists = this.recentPlayers.some(p => p.name === data.username);
+        if (!alreadyExists) {
+            this.recentPlayers.unshift({ name: data.username, status: 'joining' });
+            if (this.recentPlayers.length > 7) this.recentPlayers.pop();
+        }
+
+        this.updateLobbyScreenPlayers();
+    }
+
+    handlePhaseChange(data) {
+        const oldPhase = this.phase;
+        this.phase = data.phase;
+        this.timeLeft = data.newState?.timeLeft || data.timeLeft;
+
+        if (this.phase === 'game' && oldPhase !== 'game') {
+            // Game starting!
+            this.letters = data.newState?.letters || this.letters;
+            if (this.letters && this.letters.length > 0) {
+                this.gridLetters = this.letters;
+                this.initializeDOM();
+            }
+            this.showGameScreen();
+        } else if (this.phase === 'end' && oldPhase !== 'end') {
+            // Game ended
+            this.showEndScreen();
+        } else if (this.phase === 'lobby' && oldPhase !== 'lobby') {
+            // Back to lobby
+            this.showLobbyScreen();
+        }
+    }
+
+    // REMOVED: duplicate handleScoreUpdate was here — using the one defined earlier (line ~1099)
+
     updateLobbyScreenPlayers() {
         const joiningList = document.querySelector('.joining-list');
         const playerCountSpan = document.querySelector('.column h2 span');
@@ -1096,15 +1291,20 @@ class WordBlitz {
 
         // Update player count
         if (playerCountSpan) {
-            playerCountSpan.textContent = `${DUMMY_PLAYERS.totalPlayers} Players`;
+            // Use real player count if available, fallback to dummy for layout testing if needed
+            const count = this.playerCount || 1;
+            playerCountSpan.textContent = `${count} Players`;
         }
 
         // Update joining players list
-        joiningList.innerHTML = DUMMY_PLAYERS.joiningPlayers
+        // Use recentPlayers if we have them, otherwise show empty or "Waiting..."
+        const playersToShow = this.recentPlayers || [{ name: this.username || 'You', status: 'ready' }];
+
+        joiningList.innerHTML = playersToShow
             .map(player => `
                 <div class="joining-player">
                     <span class="player-name">${player.name}</span>
-                    <span class="status" status="${player.status}">${player.status}</span>
+                    <span class="status" status="${player.status || 'ready'}">${player.status || 'ready'}</span>
                 </div>
             `).join('');
     }
@@ -1113,33 +1313,72 @@ class WordBlitz {
         const leaderboard = document.querySelector('.leaderboard-table');
         if (!leaderboard) return;
 
-        leaderboard.innerHTML = DUMMY_PLAYERS.activePlayers
-            .map(player => `
-                <div class="table-row">
-                    <div class="player-name">${player.name}</div>
-                    <div class="word-count">${player.wordsFound}</div>
-                    <div class="score">${player.score}</div>
-                </div>
-            `).join('');
+        // Use REAL leaderboard data from server
+        const data = this.leaderboardData || [];
+
+        // Update leaderboard header with player count
+        const lbHeader = document.querySelector('.game-screen .column:first-child h2 span');
+        if (lbHeader) {
+            lbHeader.textContent = `| ${this.playerCount || data.length} Players`;
+        }
+
+        if (data.length === 0) {
+            leaderboard.innerHTML = '<div class="table-row"><div class="player-name" style="opacity:0.5">Waiting for scores...</div></div>';
+            return;
+        }
+
+        leaderboard.innerHTML = data
+            .map(player => {
+                const displayName = player.member.includes(':') ? player.member.split(':')[0] : player.member;
+                return `
+                    <div class="table-row">
+                        <div class="player-name">${displayName}</div>
+                        <div class="word-count"></div>
+                        <div class="score">${player.score}</div>
+                    </div>
+                `;
+            }).join('');
     }
 
     updateFinalStandings() {
+        // Request fresh leaderboard if we don't have data yet
+        if (!this.leaderboardData || this.leaderboardData.length === 0) {
+            if (this.multiplayer && this.multiplayer.isMultiplayer()) {
+                this.multiplayer.sendToDevvit({ type: 'getLeaderboard' });
+            }
+        }
+        this.renderFinalStandings();
+    }
+
+    renderFinalStandings() {
         const finalStandings = document.querySelector('.final-standings');
         if (!finalStandings) return;
 
-        finalStandings.innerHTML = DUMMY_PLAYERS.finalStandings
-            .map(player => `
-                <div class="standings-row">
-                    <div class="rank">${player.rank}</div>
-                    <div class="player-content">
-                        <div class="player-info">
-                            <div class="player-name">${player.name}</div>
-                            <span class="words-found">${player.wordsFound} words</span>
+        // Use real data if available
+        const standingsData = this.leaderboardData || [];
+
+        if (standingsData.length === 0) {
+            finalStandings.innerHTML = '<div class="loading">Loading results...</div>';
+            return;
+        }
+
+        finalStandings.innerHTML = standingsData
+            .map((player, index) => {
+                // Strip session suffix
+                const displayName = player.member.includes(':') ? player.member.split(':')[0] : player.member;
+                return `
+                    <div class="standings-row">
+                        <div class="rank">${index + 1}</div>
+                        <div class="player-content">
+                            <div class="player-info">
+                                <div class="player-name">${displayName}</div>
+                                <span class="words-found">Score: ${player.score}</span> 
+                            </div>
+                            <div class="final-score">${player.score}</div>
                         </div>
-                        <div class="final-score">${player.score}</div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
     }
 
     // Clear ALL intervals when switching screens or resetting
@@ -1230,7 +1469,7 @@ class WordBlitz {
 // Initialize game when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        const game = new WordBlitz();
+        const game = new WordMaestro();
     } catch (error) {
         console.error('Failed to create game instance:', error);
     }

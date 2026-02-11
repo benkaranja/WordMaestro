@@ -1,5 +1,5 @@
 /**
- * Multiplayer Helper for World Word Winner
+ * Multiplayer Helper for Word Maestro
  * Handles communication between the webview and Devvit server
  * 
  * Message Protocol:
@@ -42,9 +42,39 @@ class MultiplayerHelper {
 
         if (this.isDevvit) {
             this.setupDevvitListener();
+            this.hijackConsole(); // Forward logs to Devvit terminal
         } else {
             console.log('🌐 Running in standalone mode (not in Devvit)');
         }
+    }
+
+    /**
+     * Hijack console methods to forward logs to Devvit
+     */
+    hijackConsole() {
+        this.originalLog = console.log;
+        this.originalWarn = console.warn;
+        this.originalError = console.error;
+
+        console.log = (...args) => {
+            this.originalLog.apply(console, args);
+            // Avoid infinite loop: don't forward logs that originated from sendToDevvit
+            if (args[0] && typeof args[0] === 'string' && args[0].includes('📤 Sending to Devvit')) return;
+            this.sendToDevvit({ type: 'log', data: args.join(' ') });
+        };
+
+        console.warn = (...args) => {
+            this.originalWarn.apply(console, args);
+            this.sendToDevvit({ type: 'log', data: 'WARN: ' + args.join(' ') });
+        };
+
+        console.error = (...args) => {
+            this.originalError.apply(console, args);
+            this.sendToDevvit({ type: 'log', data: 'ERROR: ' + args.join(' ') });
+        };
+
+        // Notify that logging is set up
+        console.log('✅ Console hijacking active - logs forwarding to Devvit');
     }
 
     /**
@@ -88,6 +118,8 @@ class MultiplayerHelper {
                     this.timeLeft = message.data?.timeLeft ?? this.timeLeft;
                     this.gameId = message.data?.gameId || this.gameId;
                     this.letters = message.data?.letters || this.letters;
+                    // Temp debug log to confirm receipt
+                    // (Silenced to prevent log spam every second)
                     if (this.callbacks.onTimeSync) {
                         this.callbacks.onTimeSync(message.data);
                     }
@@ -118,22 +150,18 @@ class MultiplayerHelper {
                     this.gameId = message.data?.gameId || this.gameId;
                     this.letters = message.data?.letters || this.letters;
                     this.phase = 'lobby';
-                    this.timeLeft = 10;
-                    console.log('🔵 New game cycle started:', this.gameId);
                     if (this.callbacks.onNewCycle) {
                         this.callbacks.onNewCycle(message.data);
+                    }
+                    if (this.callbacks.onInit) {
+                        this.callbacks.onInit(message.data);
                     }
                     break;
 
                 case 'leaderboard':
-                    if (this.callbacks.onLeaderboardUpdate) {
-                        this.callbacks.onLeaderboardUpdate(message.data);
-                    }
-                    break;
-
                 case 'globalLeaderboard':
-                    if (this.callbacks.onGlobalLeaderboard) {
-                        this.callbacks.onGlobalLeaderboard(message.data);
+                    if (this.callbacks.onLeaderboard) {
+                        this.callbacks.onLeaderboard(message.data);
                     }
                     break;
             }
@@ -148,7 +176,18 @@ class MultiplayerHelper {
      */
     sendToDevvit(message) {
         if (this.isDevvit && window.parent) {
+            if (this.originalLog) {
+                this.originalLog('📤 Sending to Devvit:', JSON.stringify(message));
+            } else {
+                console.log('📤 Sending to Devvit:', JSON.stringify(message));
+            }
             window.parent.postMessage(message, '*');
+        } else {
+            if (this.originalWarn) {
+                this.originalWarn('⚠️ accurate sendToDevvit failed: isDevvit=', this.isDevvit, 'parent=', !!window.parent);
+            } else {
+                console.warn('⚠️ accurate sendToDevvit failed: isDevvit=', this.isDevvit, 'parent=', !!window.parent);
+            }
         }
     }
 
@@ -168,6 +207,14 @@ class MultiplayerHelper {
     /**
      * Request current leaderboard
      */
+    onLeaderboard(callback) {
+        this.callbacks.onLeaderboard = callback;
+    }
+
+    onTimeSync(callback) {
+        this.callbacks.onTimeSync = callback;
+    }
+
     requestLeaderboard() {
         if (this.isDevvit) {
             this.sendToDevvit({ type: 'getLeaderboard' });
