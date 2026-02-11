@@ -34,3 +34,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Game Design Documents
+01 - *.md
+01 - *.txt
+02 - *.txt
