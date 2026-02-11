@@ -24,132 +24,109 @@ const CONSONANTS = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 
 
 class AudioManager {
     constructor() {
-        this.context = new (window.AudioContext || window.webkitAudioContext)();
-        this.sounds = {};
-        this.initializeSounds();
-    }
-
-    async initializeSounds() {
-        // Create oscillator-based sounds
-        this.sounds = {
-            tileClick: this.createTileClickSound(),
-            wordSuccess: this.createWordSuccessSound(),
-            wordError: this.createWordErrorSound(),
-            gameOver: this.createGameOverSound(),
-            shuffle: this.createShuffleSound()
+        // Sound effects (short clips — create fresh Audio each play to allow overlap)
+        this.sfxFiles = {
+            tileClick: 'audio/Tile Click.mp3',
+            validWord: 'audio/Valid Word.mp3',
+            invalidWord: 'audio/Invalid Word.mp3',
+            gameStart: 'audio/Game Start.mp3',
+            gameOver: 'audio/Game Over.mp3',
+            bigWord: 'audio/Big Word.wav',
+            streak: 'audio/Streak.mp3',
         };
+
+        // Long-playing tracks (single instance, looped or timed)
+        this.bgMusic = new Audio('audio/Background Music.mp3');
+        this.bgMusic.loop = true;
+        this.bgMusic.volume = 0.25;
+
+        this.countdown60 = new Audio('audio/Count Down Timer 60sec.mp3');
+        this.countdown60.volume = 0.35;
+
+        this.countdown15 = new Audio('audio/Last Count Down Timer 15 sec.wav');
+        this.countdown15.volume = 0.4;
+
+        // Track state
+        this.currentCountdown = null; // 'c60' | 'c15' | null
+        this.musicPlaying = false;
+
+        // Preload sfx by creating and discarding Audio objects (populates browser cache)
+        Object.values(this.sfxFiles).forEach(src => {
+            const a = new Audio(src);
+            a.preload = 'auto';
+            a.load();
+        });
     }
 
-    createTileClickSound() {
-        return () => {
-            const osc = this.context.createOscillator();
-            const gain = this.context.createGain();
-
-            osc.connect(gain);
-            gain.connect(this.context.destination);
-
-            // Higher starting frequency for sharper attack
-            osc.frequency.setValueAtTime(1200, this.context.currentTime);
-            // Faster drop to lower frequency for a 'pop' effect
-            osc.frequency.exponentialRampToValueAtTime(300, this.context.currentTime + 0.2);
-
-            // Much lower volume
-            gain.gain.setValueAtTime(0.03, this.context.currentTime);
-            // Faster fade out
-            gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.2);
-
-            // Shorter overall duration
-            osc.start();
-            osc.stop(this.context.currentTime + 0.2);
-        };
-    }
-
-    createWordSuccessSound() {
-        return () => {
-            const osc = this.context.createOscillator();
-            const gain = this.context.createGain();
-
-            osc.connect(gain);
-            gain.connect(this.context.destination);
-
-            osc.frequency.setValueAtTime(440, this.context.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(880, this.context.currentTime + 0.15);
-
-            gain.gain.setValueAtTime(0.2, this.context.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.15);
-
-            osc.start();
-            osc.stop(this.context.currentTime + 0.15);
-        };
-    }
-
-    createWordErrorSound() {
-        return () => {
-            const osc = this.context.createOscillator();
-            const gain = this.context.createGain();
-
-            osc.connect(gain);
-            gain.connect(this.context.destination);
-
-            osc.frequency.setValueAtTime(220, this.context.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(110, this.context.currentTime + 0.2);
-
-            gain.gain.setValueAtTime(0.2, this.context.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.2);
-
-            osc.start();
-            osc.stop(this.context.currentTime + 0.2);
-        };
-    }
-
-    createGameOverSound() {
-        return () => {
-            const osc = this.context.createOscillator();
-            const gain = this.context.createGain();
-
-            osc.connect(gain);
-            gain.connect(this.context.destination);
-
-            osc.frequency.setValueAtTime(880, this.context.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(220, this.context.currentTime + 0.5);
-
-            gain.gain.setValueAtTime(0.3, this.context.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.5);
-
-            osc.start();
-            osc.stop(this.context.currentTime + 0.5);
-        };
-    }
-
-    createShuffleSound() {
-        return () => {
-            const duration = 0.3;
-            const osc = this.context.createOscillator();
-            const gain = this.context.createGain();
-
-            osc.connect(gain);
-            gain.connect(this.context.destination);
-
-            osc.frequency.setValueAtTime(440, this.context.currentTime);
-
-            // Create shuffle effect
-            for (let i = 0; i < 3; i++) {
-                const time = this.context.currentTime + (i * 0.1);
-                osc.frequency.setValueAtTime(440 + (i * 220), time);
-            }
-
-            gain.gain.setValueAtTime(0.2, this.context.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
-
-            osc.start();
-            osc.stop(this.context.currentTime + duration);
-        };
-    }
-
-    playSound(soundName) {
-        if (this.sounds[soundName]) {
-            this.sounds[soundName]();
+    /** Play a one-shot sound effect */
+    playSound(name) {
+        const src = this.sfxFiles[name];
+        if (!src) return;
+        try {
+            const a = new Audio(src);
+            a.volume = name === 'tileClick' ? 0.15 : 0.5;
+            a.play().catch(() => { }); // ignore autoplay blocks
+        } catch (e) {
+            console.warn('SFX play failed:', name, e);
         }
+    }
+
+    /** Start background music (lobby/end screens) */
+    startBgMusic() {
+        if (this.musicPlaying) return;
+        this.musicPlaying = true;
+        this.bgMusic.currentTime = 0;
+        this.bgMusic.play().catch(() => { });
+    }
+
+    /** Stop background music */
+    stopBgMusic() {
+        this.musicPlaying = false;
+        this.bgMusic.pause();
+        this.bgMusic.currentTime = 0;
+    }
+
+    /** Start the 60-second countdown track (for game start) */
+    startCountdown60() {
+        this.stopAllCountdowns();
+        this.currentCountdown = 'c60';
+        this.countdown60.currentTime = 0;
+        this.countdown60.play().catch(() => { });
+    }
+
+    /** Crossfade to the 15-second countdown track */
+    startCountdown15() {
+        // Fade out countdown60
+        this.countdown60.pause();
+        this.countdown60.currentTime = 0;
+        this.currentCountdown = 'c15';
+        this.countdown15.currentTime = 0;
+        this.countdown15.play().catch(() => { });
+    }
+
+    /** Stop all countdown tracks */
+    stopAllCountdowns() {
+        this.countdown60.pause();
+        this.countdown60.currentTime = 0;
+        this.countdown15.pause();
+        this.countdown15.currentTime = 0;
+        this.currentCountdown = null;
+    }
+
+    /** Pause everything (for sleep/visibility hidden) */
+    pauseAll() {
+        this.bgMusic.pause();
+        this.countdown60.pause();
+        this.countdown15.pause();
+    }
+
+    /** Resume tracks based on current state */
+    resume(phase) {
+        if (phase === 'lobby' || phase === 'end') {
+            if (this.musicPlaying) this.bgMusic.play().catch(() => { });
+        }
+        if (this.currentCountdown === 'c60') this.countdown60.play().catch(() => { });
+        if (this.currentCountdown === 'c15') this.countdown15.play().catch(() => { });
     }
 }
 
@@ -395,9 +372,18 @@ class WordMaestro {
         this.cleanup();
         this.showScreen('lobby');
 
+        // Audio: start bg music, stop countdowns
+        if (this.audio && this.soundEnabled) {
+            this.audio.stopAllCountdowns();
+            this.audio.startBgMusic();
+        }
+
+        // Clear stale leaderboard data (fix issue 2)
+        const leaderboard = document.querySelector('.leaderboard-table');
+        if (leaderboard) leaderboard.innerHTML = '';
+
         const lobbyCountdown = document.querySelector('.lobby-screen .radial-progress');
         if (lobbyCountdown) {
-            // Initial render, but updates come from server
             const progress = (this.timeLeft / 10) * 360;
             lobbyCountdown.textContent = this.timeLeft;
             lobbyCountdown.style.setProperty('--progress', `${progress}deg`);
@@ -410,6 +396,18 @@ class WordMaestro {
         this.showScreen('game');
         this.startGame();
 
+        // Audio: stop bg music, start countdown
+        if (this.audio && this.soundEnabled) {
+            this.audio.stopBgMusic();
+            this.audio.playSound('gameStart');
+            // Start 60s countdown (will swap to 15s at timeLeft <= 15)
+            setTimeout(() => {
+                if (this.audio && this.soundEnabled && this.gameActive) {
+                    this.audio.startCountdown60();
+                }
+            }, 1500); // slight delay after game start sfx
+        }
+
         this.updateLeaderboard();
     }
 
@@ -420,8 +418,12 @@ class WordMaestro {
         this.updateEndScreenStats();
         this.showScreen('end');
 
-        // End screen countdown is driven by server timeSync (no local timer)
-        // Just set initial display
+        // Audio: stop countdowns, start bg music
+        if (this.audio && this.soundEnabled) {
+            this.audio.stopAllCountdowns();
+            this.audio.startBgMusic();
+        }
+
         const endCountdown = document.querySelector('.end-screen .radial-progress');
         if (endCountdown) {
             endCountdown.textContent = this.timeLeft || 10;
@@ -514,12 +516,18 @@ class WordMaestro {
             // Update progress bar
             const progress = (this.timeLeft / this.gameTime) * 100;
             progressBar.style.width = `${progress}%`;
+
+            // Countdown track crossfade: swap to 15s track at 15 seconds
+            if (this.audio && this.soundEnabled && this.gameActive) {
+                if (this.timeLeft <= 15 && this.audio.currentCountdown === 'c60') {
+                    this.audio.startCountdown15();
+                }
+            }
         }
     }
 
     endGame() {
         console.log('🏁 Game over!');
-        // Clear the countdown interval
         if (this.countdownInterval) {
             clearInterval(this.countdownInterval);
             this.countdownInterval = null;
@@ -528,7 +536,10 @@ class WordMaestro {
         this.gameActive = false;
         clearInterval(this.timer);
 
-        // Safely play sound
+        // Audio: stop countdowns, play game over sfx
+        if (this.audio) {
+            this.audio.stopAllCountdowns();
+        }
         this.playSound('gameOver');
 
         // Disable interactions
@@ -542,7 +553,6 @@ class WordMaestro {
         if (this.clearBtn) this.clearBtn.disabled = true;
         if (this.shuffleBtn) this.shuffleBtn.disabled = true;
 
-        // Show end screen after a brief delay
         setTimeout(() => {
             this.showEndScreen();
         }, 1500);
@@ -551,34 +561,72 @@ class WordMaestro {
     initializeAudio() {
         try {
             this.audio = new AudioManager();
-            this.audioInitialized = false;
+            this.audioInitialized = true;
 
-            // Initialize audio on first user interaction
-            const initAudioOnInteraction = () => {
-                if (!this.audioInitialized) {
-                    this.audioInitialized = true;
-                    this.audio.context.resume().catch(console.error);
+            // Streak tracking
+            this._recentWordTimes = [];
+
+            // Visibility change handler for sleep recovery (issue 7)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    // Phone went to sleep — pause all audio
+                    if (this.audio) this.audio.pauseAll();
+                } else {
+                    // Phone woke up — resume audio and re-sync state
+                    if (this.audio && this.soundEnabled) {
+                        this.audio.resume(this.phase);
+                    }
+                    // Re-request game state from server
+                    if (this.multiplayer && this.multiplayer.isMultiplayer()) {
+                        this.multiplayer.sendToDevvit({ type: 'ready' });
+                    }
                 }
-                document.removeEventListener('click', initAudioOnInteraction);
-            };
-
-            document.addEventListener('click', initAudioOnInteraction);
+            });
         } catch (error) {
             console.warn('Audio initialization failed:', error);
-            // Create dummy audio methods to prevent errors
             this.audio = {
-                playSound: () => { } // No-op function
+                playSound: () => { },
+                startBgMusic: () => { },
+                stopBgMusic: () => { },
+                startCountdown60: () => { },
+                startCountdown15: () => { },
+                stopAllCountdowns: () => { },
+                pauseAll: () => { },
+                resume: () => { }
             };
         }
     }
 
     playSound(soundName) {
-        if (this.audio && this.audioInitialized && this.soundEnabled) {
-            try {
-                this.audio.playSound(soundName);
-            } catch (error) {
-                console.warn('Failed to play sound:', error);
+        if (!this.audio || !this.soundEnabled) return;
+        // Map old names to new file-based names
+        const nameMap = {
+            'success': 'validWord',
+            'error': 'invalidWord',
+            'shuffle': 'tileClick', // no separate shuffle file, use tile click
+        };
+        const mapped = nameMap[soundName] || soundName;
+        try {
+            this.audio.playSound(mapped);
+
+            // Big word detection (6+ letters)
+            if (mapped === 'validWord' && this.currentWord && this.currentWord.length >= 6) {
+                setTimeout(() => this.audio.playSound('bigWord'), 300);
             }
+
+            // Streak detection (3+ words within 8 seconds)
+            if (mapped === 'validWord') {
+                if (!this._recentWordTimes) this._recentWordTimes = [];
+                const now = Date.now();
+                this._recentWordTimes.push(now);
+                this._recentWordTimes = this._recentWordTimes.filter(t => now - t < 8000);
+                if (this._recentWordTimes.length >= 3) {
+                    setTimeout(() => this.audio.playSound('streak'), 500);
+                    this._recentWordTimes = []; // reset streak
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to play sound:', error);
         }
     }
 
@@ -619,6 +667,9 @@ class WordMaestro {
 
     async submitWord() {
         if (!this.gameActive) return;
+        // Re-entrant guard — prevent double-submit while feedback is showing (issue 1)
+        if (this._submitting) return;
+        this._submitting = true;
 
         const word = this.currentWord.toLowerCase();
         console.log(`📝 Attempting to submit word: ${word}`);
@@ -628,6 +679,7 @@ class WordMaestro {
             this.playSound('error');
             this.showMessage('TOO SHORT', 'error');
             this.resetTiles();
+            setTimeout(() => { this._submitting = false; }, 700);
             return;
         }
 
@@ -636,6 +688,7 @@ class WordMaestro {
             this.playSound('error');
             this.showMessage('NOT IN DICTIONARY', 'error');
             this.resetTiles();
+            setTimeout(() => { this._submitting = false; }, 700);
             return;
         }
 
@@ -644,11 +697,13 @@ class WordMaestro {
             this.playSound('error');
             this.showMessage('ALREADY FOUND', 'warning');
             this.resetTiles();
+            setTimeout(() => { this._submitting = false; }, 700);
             return;
         }
 
-        // Word is valid - process it (no error message before this!)
+        // Word is valid - process it
         this.processValidWord(word.toUpperCase());
+        this._submitting = false;
     }
 
     processValidWord(word) {

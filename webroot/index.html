@@ -173,17 +173,63 @@
     </div>
     <script src="multiplayerHelper.js"></script>
     <script src="game.js"></script>
+
+    <!-- Debug overlay for viewport monitoring (Issue 3) -->
+    <div id="debug-overlay"></div>
     <script>
-        // Viewport debug logging for Reddit breakpoint discovery
-        function logViewport() {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const ratio = (w / h).toFixed(2);
-            const orientation = w > h ? 'landscape' : 'portrait';
-            console.log(`[VIEWPORT] ${w}x${h} ratio=${ratio} ${orientation} dpr=${window.devicePixelRatio}`);
-        }
-        window.addEventListener('resize', logViewport);
-        logViewport();
+        (function () {
+            const overlay = document.getElementById('debug-overlay');
+            if (!overlay) return;
+
+            function getBreakpoint(w, h) {
+                const ratio = w / h;
+                if (w <= 400) return 'XS (<400px)';
+                if (ratio < 9 / 16) return 'TALL (9:16+)';
+                if (w <= 720 || ratio < 3 / 4) return 'PORTRAIT';
+                return 'LANDSCAPE';
+            }
+
+            function checkClipping() {
+                const issues = [];
+                const container = document.querySelector('.container');
+                const grid = document.querySelector('.grid');
+                const buttons = document.querySelector('.buttons');
+                const wordDisplay = document.querySelector('.word-display');
+
+                if (container) {
+                    const cr = container.getBoundingClientRect();
+                    if (cr.bottom > window.innerHeight) issues.push('container-clip');
+                    if (cr.right > window.innerWidth) issues.push('container-right');
+                }
+                if (grid) {
+                    const gr = grid.getBoundingClientRect();
+                    if (gr.bottom > window.innerHeight) issues.push('grid-clip');
+                }
+                if (buttons) {
+                    const br = buttons.getBoundingClientRect();
+                    if (br.bottom > window.innerHeight) issues.push('btn-clip');
+                }
+                if (wordDisplay) {
+                    const wr = wordDisplay.getBoundingClientRect();
+                    if (wr.top < 0) issues.push('word-hidden');
+                }
+                return issues;
+            }
+
+            function update() {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                const ratio = (w / h).toFixed(2);
+                const bp = getBreakpoint(w, h);
+                const clips = checkClipping();
+                const clipsStr = clips.length ? '\n⚠ ' + clips.join(', ') : '\n✅ No clips';
+                overlay.textContent = `${w}×${h} (${ratio})\n${bp}${clipsStr}`;
+            }
+
+            window.addEventListener('resize', update);
+            setInterval(update, 2000);
+            update();
+        })();
     </script>
 </body>
 

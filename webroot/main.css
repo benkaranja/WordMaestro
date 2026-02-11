@@ -1,9 +1,42 @@
+/* @font-face declarations */
+@font-face {
+    font-family: 'Russo One';
+    src: url('fonts/Russo_One/RussoOne-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Barlow Condensed';
+    src: url('fonts/Barlow_Condensed/BarlowCondensed-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Barlow Condensed';
+    src: url('fonts/Barlow_Condensed/BarlowCondensed-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Barlow Condensed';
+    src: url('fonts/Barlow_Condensed/BarlowCondensed-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* General Reset */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: Arial, sans-serif;
+    font-family: 'Barlow Condensed', Arial, sans-serif;
 }
 
 /* Opponent word notification animations */
@@ -128,11 +161,12 @@ body {
 }
 
 .header-column.title h1 {
+    font-family: 'Russo One', Arial, sans-serif;
     font-size: 16px;
     margin: 0;
     font-weight: bold;
     white-space: nowrap;
-    /* Keep on one line */
+    letter-spacing: 1px;
 }
 
 .header-column.title .time-left {
@@ -324,7 +358,7 @@ body {
 
 .buttons button {
     flex: 1;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border: none;
     border-radius: 4px;
     font-size: 14px;
@@ -1621,6 +1655,7 @@ body {
 }
 
 .splash-title {
+    font-family: 'Russo One', Arial, sans-serif;
     font-size: 36px;
     font-weight: bold;
     color: #fff;
@@ -1821,11 +1856,12 @@ screen and (max-aspect-ratio: 3/4) {
         flex-shrink: 0;
     }
 
+    /* Issue 5 fix: tiles use full available width */
     .grid {
         width: 100%;
-        max-width: 320px;
+        max-width: min(100%, 400px);
         margin: 4px auto;
-        gap: 4px;
+        gap: 5px;
         flex: 1;
         min-height: 0;
     }
@@ -1833,6 +1869,7 @@ screen and (max-aspect-ratio: 3/4) {
     .tile {
         font-size: 20px;
         min-height: 0;
+        aspect-ratio: 1;
     }
 
     .tile .points {
@@ -1845,8 +1882,9 @@ screen and (max-aspect-ratio: 3/4) {
         gap: 6px;
     }
 
+    /* Issue 6 fix: taller buttons on mobile */
     .buttons button {
-        padding: 8px 12px;
+        padding: 10px 14px;
         font-size: 13px;
     }
 
@@ -1861,10 +1899,28 @@ screen and (max-aspect-ratio: 3/4) {
         display: flex !important;
     }
 
-    /* Leaderboard/lists compact on mobile */
-    .leaderboard-table,
-    .joining-list,
+    /* Issue 8: Hide scoring instructions on mobile lobby, hide top words on end */
+    .lobby-screen .instructions,
+    .lobby-screen .multipliers {
+        display: none !important;
+    }
+
+    .end-screen .top-words {
+        display: none !important;
+    }
+
+    /* Issue 8: Scrollable lists */
+    .joining-list {
+        max-height: 180px;
+        overflow-y: auto;
+    }
+
     .final-standings {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .leaderboard-table {
         max-height: 120px;
         overflow-y: auto;
     }
@@ -1931,8 +1987,8 @@ screen and (max-aspect-ratio: 3/4) {
     }
 
     .grid {
-        max-width: 260px;
-        gap: 3px;
+        max-width: min(100%, 340px);
+        gap: 4px;
     }
 
     .tile {
@@ -1940,7 +1996,7 @@ screen and (max-aspect-ratio: 3/4) {
     }
 
     .buttons button {
-        padding: 7px 10px;
+        padding: 9px 12px;
         font-size: 12px;
     }
 }
@@ -1952,6 +2008,26 @@ screen and (max-aspect-ratio: 3/4) {
     }
 
     .buttons button {
-        padding: 10px 14px;
+        padding: 12px 16px;
     }
+}
+
+/* ========================================
+   DEBUG OVERLAY (temporary)
+   ======================================== */
+#debug-overlay {
+    position: fixed;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    z-index: 10000;
+    pointer-events: none;
+    white-space: pre;
+    line-height: 1.4;
+    max-width: 200px;
 }

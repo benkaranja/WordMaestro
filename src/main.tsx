@@ -251,6 +251,17 @@ Devvit.addCustomPostType({
 
                     const { phase, timeLeft } = getPhaseInfo(state.cycleStartTime);
 
+                    // Auto-register player into activePlayers (fix issue 4: lobby freeze)
+                    // This ensures at least 1 player exists before the ticker checks zCard
+                    const playerKey = `${currentUsername}:${sessionId}`;
+                    const existing = await redis.zScore(REDIS_KEYS.activePlayers(state.gameId), playerKey);
+                    if (existing === undefined) {
+                        await redis.zAdd(REDIS_KEYS.activePlayers(state.gameId), {
+                            member: playerKey,
+                            score: Date.now()
+                        });
+                    }
+
                     // Fetch current player list
                     const players = await redis.zRange(
                         REDIS_KEYS.activePlayers(state.gameId), 0, 9, { reverse: true, by: 'rank' }
