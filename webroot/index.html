@@ -10,10 +10,6 @@
 </head>
 
 <body>
-    <!-- Debug elements FIRST so they always render -->
-    <div id="debug-overlay"></div>
-    <div id="debug-log"></div>
-
     <!-- Splash / Loading Screen -->
     <div id="splash-screen" class="splash-screen">
         <div class="splash-content">
@@ -175,61 +171,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Debug script — patches console BEFORE game scripts load -->
-    <script>
-        // On-screen debug logger — must load BEFORE multiplayerHelper.js
-        // so it captures all initialization messages
-        (function () {
-            var logEl = document.getElementById('debug-log');
-            var overlay = document.getElementById('debug-overlay');
-            var MAX_LINES = 25;
-            var lines = [];
-
-            function addLine(prefix, args) {
-                var parts = [];
-                for (var i = 0; i < args.length; i++) {
-                    var a = args[i];
-                    if (typeof a === 'string') parts.push(a);
-                    else try { parts.push(JSON.stringify(a).substring(0, 100)); } catch (e) { parts.push(String(a)); }
-                }
-                var ts = new Date().toLocaleTimeString().split(' ')[0];
-                lines.push(ts + ' ' + prefix + ' ' + parts.join(' '));
-                if (lines.length > MAX_LINES) lines.shift();
-                if (logEl) logEl.textContent = lines.join('\n');
-            }
-
-            // Patch console BEFORE anything else loads
-            var _origLog = console.log;
-            var _origWarn = console.warn;
-            var _origError = console.error;
-
-            console.log = function () { _origLog.apply(console, arguments); addLine('LOG', arguments); };
-            console.warn = function () { _origWarn.apply(console, arguments); addLine('WRN', arguments); };
-            console.error = function () { _origError.apply(console, arguments); addLine('ERR', arguments); };
-
-            // Expose the real originals for multiplayerHelper to use
-            window._realConsoleLog = _origLog;
-            window._realConsoleWarn = _origWarn;
-            window._realConsoleError = _origError;
-
-            console.log('🔧 Debug panel initialized');
-
-            // Viewport debug overlay
-            if (overlay) {
-                function update() {
-                    var w = window.innerWidth;
-                    var h = window.innerHeight;
-                    var ratio = (w / h).toFixed(2);
-                    var label = (w <= 500 && w / h < 0.8) ? 'PORTRAIT' : 'LANDSCAPE/SQ';
-                    overlay.textContent = w + '×' + h + ' (' + ratio + ') ' + label;
-                }
-                window.addEventListener('resize', update);
-                setInterval(update, 3000);
-                update();
-            }
-        })();
-    </script>
 
     <script src="multiplayerHelper.js"></script>
     <script src="game.js"></script>

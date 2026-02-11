@@ -1,5 +1,5 @@
 name: word-maestro
-version: 0.0.1
+version: 0.0.2
 webroot: webroot
 blocks:
   entry: src/main.tsx

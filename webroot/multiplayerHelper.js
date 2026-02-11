@@ -52,15 +52,13 @@ class MultiplayerHelper {
      * Hijack console methods to forward logs to Devvit
      */
     hijackConsole() {
-        // Use the real originals exposed by the debug panel script (loaded before us)
-        this.originalLog = window._realConsoleLog || console.log;
-        this.originalWarn = window._realConsoleWarn || console.warn;
-        this.originalError = window._realConsoleError || console.error;
+        this.originalLog = console.log;
+        this.originalWarn = console.warn;
+        this.originalError = console.error;
 
         const self = this;
         console.log = (...args) => {
             self.originalLog.apply(console, args);
-            // Avoid infinite loop: don't forward logs that originated from sendToDevvit
             if (args[0] && typeof args[0] === 'string' && args[0].includes('📤 Sending to Devvit')) return;
             self.sendToDevvit({ type: 'log', data: args.join(' ') });
         };
@@ -74,22 +72,15 @@ class MultiplayerHelper {
             self.originalError.apply(console, args);
             self.sendToDevvit({ type: 'log', data: 'ERROR: ' + args.join(' ') });
         };
-
-        console.log('✅ Console hijacking active - logs forwarding to Devvit');
     }
 
     /**
      * Detect if running inside Devvit webview
      */
     detectDevvit() {
-        const isDevvit = typeof window !== 'undefined' &&
+        return typeof window !== 'undefined' &&
             window.parent !== window &&
             typeof window.parent.postMessage === 'function';
-        // Use real console to avoid circular dependency during init
-        (window._realConsoleLog || console.log)('🔍 detectDevvit:', isDevvit,
-            'parent!==window:', window.parent !== window,
-            'postMessage:', typeof window.parent?.postMessage);
-        return isDevvit;
     }
 
     /**
@@ -173,18 +164,11 @@ class MultiplayerHelper {
             }
         });
 
-        // Notify Devvit that webview is ready — send with retry
-        console.log('🚀 Sending ready message to Devvit...');
+        // Notify Devvit that webview is ready
         this.sendToDevvit({ type: 'ready' });
-        // Retry ready in case the parent wasn't listening yet
-        setTimeout(() => {
-            console.log('🚀 Retry ready #1');
-            this.sendToDevvit({ type: 'ready' });
-        }, 500);
-        setTimeout(() => {
-            console.log('🚀 Retry ready #2');
-            this.sendToDevvit({ type: 'ready' });
-        }, 1500);
+        // Retry in case parent wasn't ready
+        setTimeout(() => this.sendToDevvit({ type: 'ready' }), 500);
+        setTimeout(() => this.sendToDevvit({ type: 'ready' }), 1500);
     }
 
     /**

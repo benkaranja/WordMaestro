@@ -210,23 +210,12 @@ Devvit.addCustomPostType({
         // ============================================================
         // TICKER: Runs every second. ALL state comes from Redis.
         // ============================================================
-        let tickCount = 0;
         const ticker = useInterval(async () => {
-            tickCount++;
             try {
                 const state = await getFreshGameState(redis);
-                if (!state) {
-                    if (tickCount <= 3) console.log(`⏱ [TICK ${tickCount}] No game state!`);
-                    return;
-                }
+                if (!state) return;
 
                 const elapsed = Math.floor((Date.now() - state.cycleStartTime) / 1000);
-
-                // Log every 10 ticks to reduce noise
-                if (tickCount % 10 === 1) {
-                    const pi = getPhaseInfo(state.cycleStartTime);
-                    console.log(`⏱ [TICK ${tickCount}] phase=${pi.phase} timeLeft=${pi.timeLeft} gameId=${state.gameId}`);
-                }
 
                 // CYCLE EXPIRED: Create a brand new cycle
                 if (elapsed >= TOTAL_CYCLE) {
@@ -305,7 +294,7 @@ Devvit.addCustomPostType({
                     }
                 });
             } catch (e) {
-                console.error(`⏱ [TICK ${tickCount}] Error:`, e);
+                console.error(`⏱ Ticker error:`, e);
             }
         }, 1000);
 
