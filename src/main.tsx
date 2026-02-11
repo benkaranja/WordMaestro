@@ -100,9 +100,6 @@ Devvit.addCustomPostType({
         // Unique session ID for this tab instance (handles same-user multi-tab)
         const [sessionId] = useState(() => Math.random().toString(36).substring(2, 8));
 
-        console.log(`🔧 [RENDER] WordMaestro render called. username=${username}, sessionId=${sessionId}`);
-
-
         // Initialize game on first load
         useAsync(async () => {
             const raw = await redis.get(REDIS_KEYS.currentGame);

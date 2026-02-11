@@ -173,28 +173,39 @@ class MultiplayerHelper {
             }
         });
 
-        // Notify Devvit that webview is ready
+        // Notify Devvit that webview is ready — send with retry
         console.log('🚀 Sending ready message to Devvit...');
         this.sendToDevvit({ type: 'ready' });
-        console.log('🚀 Ready message sent!');
+        // Retry ready in case the parent wasn't listening yet
+        setTimeout(() => {
+            console.log('🚀 Retry ready #1');
+            this.sendToDevvit({ type: 'ready' });
+        }, 500);
+        setTimeout(() => {
+            console.log('🚀 Retry ready #2');
+            this.sendToDevvit({ type: 'ready' });
+        }, 1500);
     }
 
     /**
-     * Send message to Devvit parent
+     * Send message to Devvit parent — MUST use devvit-message wrapper
      */
     sendToDevvit(message) {
         if (this.isDevvit && window.parent) {
+            // Devvit requires messages wrapped in devvit-message envelope
+            const wrapped = {
+                type: 'devvit-message',
+                data: { message: message }
+            };
             if (this.originalLog) {
-                this.originalLog('📤 Sending to Devvit:', JSON.stringify(message));
-            } else {
-                console.log('📤 Sending to Devvit:', JSON.stringify(message));
+                this.originalLog('📤 Sending to Devvit:', JSON.stringify(message).substring(0, 200));
             }
-            window.parent.postMessage(message, '*');
+            window.parent.postMessage(wrapped, '*');
         } else {
             if (this.originalWarn) {
-                this.originalWarn('⚠️ accurate sendToDevvit failed: isDevvit=', this.isDevvit, 'parent=', !!window.parent);
+                this.originalWarn('⚠️ sendToDevvit failed: isDevvit=', this.isDevvit, 'parent=', !!window.parent);
             } else {
-                console.warn('⚠️ accurate sendToDevvit failed: isDevvit=', this.isDevvit, 'parent=', !!window.parent);
+                console.warn('⚠️ sendToDevvit failed: isDevvit=', this.isDevvit, 'parent=', !!window.parent);
             }
         }
     }

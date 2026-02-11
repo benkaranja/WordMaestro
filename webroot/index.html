@@ -10,6 +10,10 @@
 </head>
 
 <body>
+    <!-- Debug elements FIRST so they always render -->
+    <div id="debug-overlay"></div>
+    <div id="debug-log"></div>
+
     <!-- Splash / Loading Screen -->
     <div id="splash-screen" class="splash-screen">
         <div class="splash-content">
@@ -172,9 +176,7 @@
         </div>
     </div>
 
-    <!-- Debug overlay + log panel BEFORE game scripts so all init logs are captured -->
-    <div id="debug-overlay"></div>
-    <div id="debug-log"></div>
+    <!-- Debug script — patches console BEFORE game scripts load -->
     <script>
         // On-screen debug logger — must load BEFORE multiplayerHelper.js
         // so it captures all initialization messages
