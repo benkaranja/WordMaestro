@@ -245,14 +245,18 @@ Devvit.addCustomPostType({
 
             switch (message.type) {
                 case 'ready': {
+                    console.log(`📱 [READY] Message received from ${currentUsername}`);
                     // Fetch FRESH state from Redis (never use closure)
                     const state = await getFreshGameState(redis);
-                    if (!state) break;
+                    if (!state) {
+                        console.error('❌ [READY] No game state in Redis!');
+                        break;
+                    }
 
                     const { phase, timeLeft } = getPhaseInfo(state.cycleStartTime);
+                    console.log(`📱 [READY] GameId=${state.gameId} Phase=${phase} TimeLeft=${timeLeft} CycleStart=${state.cycleStartTime}`);
 
                     // Auto-register player into activePlayers (fix issue 4: lobby freeze)
-                    // This ensures at least 1 player exists before the ticker checks zCard
                     const playerKey = `${currentUsername}:${sessionId}`;
                     const existing = await redis.zScore(REDIS_KEYS.activePlayers(state.gameId), playerKey);
                     if (existing === undefined) {
@@ -260,14 +264,18 @@ Devvit.addCustomPostType({
                             member: playerKey,
                             score: Date.now()
                         });
+                        console.log(`📱 [READY] Auto-registered player: ${playerKey}`);
+                    } else {
+                        console.log(`📱 [READY] Player already registered: ${playerKey}`);
                     }
 
                     // Fetch current player list
                     const players = await redis.zRange(
                         REDIS_KEYS.activePlayers(state.gameId), 0, 9, { reverse: true, by: 'rank' }
                     );
+                    console.log(`📱 [READY] Players in game: ${players.length}`, players.map((p: any) => p.member));
 
-                    context.ui.webView.postMessage('game_webview', {
+                    const initPayload = {
                         type: 'init',
                         data: {
                             username: currentUsername,
@@ -275,13 +283,14 @@ Devvit.addCustomPostType({
                             timeLeft,
                             gameId: state.gameId,
                             letters: state.letters,
-                            // Strip session suffix from display names
                             players: players.map((p: any) => ({
                                 name: p.member.includes(':') ? p.member.split(':')[0] : p.member,
                                 status: 'online'
                             }))
                         }
-                    });
+                    };
+                    console.log(`📱 [READY] Sending init:`, JSON.stringify(initPayload).substring(0, 300));
+                    context.ui.webView.postMessage('game_webview', initPayload);
                     break;
                 }
 

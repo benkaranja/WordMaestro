@@ -35,19 +35,27 @@ class AudioManager {
             streak: 'audio/Streak.mp3',
         };
 
+        // Per-sound volume overrides
+        this.sfxVolumes = {
+            tileClick: 0.075,
+            validWord: 0.25,
+            invalidWord: 0.35,
+            gameStart: 0.40,
+            gameOver: 0.25,
+            bigWord: 0.25,
+            streak: 0.25,
+        };
+
         // Long-playing tracks (single instance, looped or timed)
         this.bgMusic = new Audio('audio/Background Music.mp3');
         this.bgMusic.loop = true;
-        this.bgMusic.volume = 0.25;
+        this.bgMusic.volume = 0.125;
 
         this.countdown60 = new Audio('audio/Count Down Timer 60sec.mp3');
-        this.countdown60.volume = 0.35;
-
-        this.countdown15 = new Audio('audio/Last Count Down Timer 15 sec.wav');
-        this.countdown15.volume = 0.4;
+        this.countdown60.volume = 0.10; // starts low, ramps up dynamically
 
         // Track state
-        this.currentCountdown = null; // 'c60' | 'c15' | null
+        this.currentCountdown = null; // 'c60' | null
         this.musicPlaying = false;
 
         // Preload sfx by creating and discarding Audio objects (populates browser cache)
@@ -64,7 +72,7 @@ class AudioManager {
         if (!src) return;
         try {
             const a = new Audio(src);
-            a.volume = name === 'tileClick' ? 0.15 : 0.5;
+            a.volume = this.sfxVolumes[name] || 0.25;
             a.play().catch(() => { }); // ignore autoplay blocks
         } catch (e) {
             console.warn('SFX play failed:', name, e);
@@ -86,30 +94,28 @@ class AudioManager {
         this.bgMusic.currentTime = 0;
     }
 
-    /** Start the 60-second countdown track (for game start) */
+    /** Start the 60-second countdown track (plays all the way to 0) */
     startCountdown60() {
         this.stopAllCountdowns();
         this.currentCountdown = 'c60';
         this.countdown60.currentTime = 0;
+        this.countdown60.volume = 0.10; // start quiet
         this.countdown60.play().catch(() => { });
     }
 
-    /** Crossfade to the 15-second countdown track */
-    startCountdown15() {
-        // Fade out countdown60
-        this.countdown60.pause();
-        this.countdown60.currentTime = 0;
-        this.currentCountdown = 'c15';
-        this.countdown15.currentTime = 0;
-        this.countdown15.play().catch(() => { });
+    /** Dynamically ramp countdown volume based on remaining time */
+    updateCountdownVolume(timeLeft, gameTime) {
+        if (this.currentCountdown !== 'c60') return;
+        // Ramp from 0.10 (at full time) → 0.35 (at 0 time)
+        const progress = 1 - (timeLeft / gameTime); // 0 at start → 1 at end
+        const vol = 0.10 + (0.25 * progress); // 0.10 → 0.35
+        this.countdown60.volume = Math.min(0.35, Math.max(0.10, vol));
     }
 
     /** Stop all countdown tracks */
     stopAllCountdowns() {
         this.countdown60.pause();
         this.countdown60.currentTime = 0;
-        this.countdown15.pause();
-        this.countdown15.currentTime = 0;
         this.currentCountdown = null;
     }
 
@@ -117,7 +123,6 @@ class AudioManager {
     pauseAll() {
         this.bgMusic.pause();
         this.countdown60.pause();
-        this.countdown15.pause();
     }
 
     /** Resume tracks based on current state */
@@ -126,7 +131,6 @@ class AudioManager {
             if (this.musicPlaying) this.bgMusic.play().catch(() => { });
         }
         if (this.currentCountdown === 'c60') this.countdown60.play().catch(() => { });
-        if (this.currentCountdown === 'c15') this.countdown15.play().catch(() => { });
     }
 }
 
@@ -134,8 +138,10 @@ class WordMaestro {
     constructor() {
         // Initialize multiplayer helper first to enable logging
         this.multiplayer = new MultiplayerHelper();
-        console.log('🎮 Initializing WordMaestro game...');
-
+        console.log('🎮 [DEBUG] Initializing WordMaestro game...');
+        console.log('🎮 [DEBUG] User agent:', navigator.userAgent);
+        console.log('🎮 [DEBUG] Window size:', window.innerWidth, 'x', window.innerHeight);
+        console.log('🎮 [DEBUG] isDevvit:', this.multiplayer.isDevvit);
         // Verify multiplayer connection
         this.multiplayer.onInit((data) => {
             console.log('✅ Received init data:', data);
@@ -393,6 +399,7 @@ class WordMaestro {
     }
 
     showGameScreen() {
+        console.log('🎮 [DEBUG] showGameScreen called, phase:', this.phase);
         this.showScreen('game');
         this.startGame();
 
@@ -400,7 +407,7 @@ class WordMaestro {
         if (this.audio && this.soundEnabled) {
             this.audio.stopBgMusic();
             this.audio.playSound('gameStart');
-            // Start 60s countdown (will swap to 15s at timeLeft <= 15)
+            // Start 60s countdown (plays all the way to 0)
             setTimeout(() => {
                 if (this.audio && this.soundEnabled && this.gameActive) {
                     this.audio.startCountdown60();
@@ -435,8 +442,8 @@ class WordMaestro {
     }
 
     startGame() {
-        console.log('🎮 Starting new game...');
-
+        console.log('🎮 [DEBUG] startGame called, timeLeft:', this.timeLeft, 'gameTime:', this.gameTime);
+        console.log('🎮 [DEBUG] gridLetters:', this.gridLetters?.length, 'dictionary:', this.dictionary?.size);
         // Clear any existing timers first
         this.cleanup();
 
@@ -517,11 +524,9 @@ class WordMaestro {
             const progress = (this.timeLeft / this.gameTime) * 100;
             progressBar.style.width = `${progress}%`;
 
-            // Countdown track crossfade: swap to 15s track at 15 seconds
+            // Dynamically ramp countdown volume
             if (this.audio && this.soundEnabled && this.gameActive) {
-                if (this.timeLeft <= 15 && this.audio.currentCountdown === 'c60') {
-                    this.audio.startCountdown15();
-                }
+                this.audio.updateCountdownVolume(this.timeLeft, this.gameTime);
             }
         }
     }
@@ -559,15 +564,18 @@ class WordMaestro {
     }
 
     initializeAudio() {
+        console.log('🔊 [DEBUG] Initializing audio system...');
         try {
             this.audio = new AudioManager();
             this.audioInitialized = true;
+            console.log('🔊 [DEBUG] AudioManager created successfully');
 
             // Streak tracking
             this._recentWordTimes = [];
 
             // Visibility change handler for sleep recovery (issue 7)
             document.addEventListener('visibilitychange', () => {
+                console.log('🔊 [DEBUG] Visibility changed:', document.hidden ? 'hidden' : 'visible');
                 if (document.hidden) {
                     // Phone went to sleep — pause all audio
                     if (this.audio) this.audio.pauseAll();
@@ -583,14 +591,14 @@ class WordMaestro {
                 }
             });
         } catch (error) {
-            console.warn('Audio initialization failed:', error);
+            console.error('🔊 [DEBUG] Audio initialization failed:', error);
             this.audio = {
                 playSound: () => { },
                 startBgMusic: () => { },
                 stopBgMusic: () => { },
                 startCountdown60: () => { },
-                startCountdown15: () => { },
                 stopAllCountdowns: () => { },
+                updateCountdownVolume: () => { },
                 pauseAll: () => { },
                 resume: () => { }
             };
@@ -1268,6 +1276,7 @@ class WordMaestro {
     }
 
     handleInit(data) {
+        console.log('🎮 [DEBUG] handleInit called with:', JSON.stringify(data).substring(0, 500));
         this.username = data.username;
         this.phase = data.phase;
         this.timeLeft = data.timeLeft;
@@ -1333,6 +1342,7 @@ class WordMaestro {
     }
 
     handlePhaseChange(data) {
+        console.log('🎮 [DEBUG] handlePhaseChange:', this.phase, '→', data.phase);
         const oldPhase = this.phase;
         this.phase = data.phase;
         this.timeLeft = data.newState?.timeLeft || data.timeLeft;

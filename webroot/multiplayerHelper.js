@@ -255,5 +255,24 @@ class MultiplayerHelper {
     onGlobalLeaderboard(cb) { this.callbacks.onGlobalLeaderboard = cb; }
 }
 
+// Global error handlers for Reddit app debugging
+window.onerror = function (msg, url, line, col, error) {
+    const detail = `UNCAUGHT ERROR: ${msg} at ${url}:${line}:${col} | ${error?.stack || ''}`;
+    console.error(detail);
+    // Also post directly in case console hijack hasn't set up yet
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'log', data: detail }, '*');
+    }
+    return false;
+};
+
+window.addEventListener('unhandledrejection', function (event) {
+    const detail = `UNHANDLED PROMISE REJECTION: ${event.reason?.message || event.reason} | ${event.reason?.stack || ''}`;
+    console.error(detail);
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'log', data: detail }, '*');
+    }
+});
+
 // Create global instance
 window.multiplayerHelper = new MultiplayerHelper();

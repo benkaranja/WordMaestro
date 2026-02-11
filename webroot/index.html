@@ -174,61 +174,59 @@
     <script src="multiplayerHelper.js"></script>
     <script src="game.js"></script>
 
-    <!-- Debug overlay for viewport monitoring (Issue 3) -->
+    <!-- Debug overlay for viewport monitoring -->
     <div id="debug-overlay"></div>
+    <!-- On-screen debug log for mobile Reddit app (no dev tools available) -->
+    <div id="debug-log"></div>
     <script>
+        // On-screen debug logger — captures console output for mobile debugging
         (function () {
+            const logEl = document.getElementById('debug-log');
             const overlay = document.getElementById('debug-overlay');
-            if (!overlay) return;
+            const MAX_LINES = 30;
+            let lines = [];
 
-            function getBreakpoint(w, h) {
-                const ratio = w / h;
-                if (w <= 400) return 'XS (<400px)';
-                if (ratio < 9 / 16) return 'TALL (9:16+)';
-                if (w <= 720 || ratio < 3 / 4) return 'PORTRAIT';
-                return 'LANDSCAPE';
+            function addLine(prefix, args) {
+                const text = Array.from(args).map(a => {
+                    if (typeof a === 'string') return a;
+                    try { return JSON.stringify(a).substring(0, 120); }
+                    catch (e) { return String(a); }
+                }).join(' ');
+                lines.push(`${prefix} ${text}`);
+                if (lines.length > MAX_LINES) lines.shift();
+                if (logEl) logEl.textContent = lines.join('\n');
             }
 
-            function checkClipping() {
-                const issues = [];
-                const container = document.querySelector('.container');
-                const grid = document.querySelector('.grid');
-                const buttons = document.querySelector('.buttons');
-                const wordDisplay = document.querySelector('.word-display');
+            const origLog = console.log;
+            const origWarn = console.warn;
+            const origError = console.error;
 
-                if (container) {
-                    const cr = container.getBoundingClientRect();
-                    if (cr.bottom > window.innerHeight) issues.push('container-clip');
-                    if (cr.right > window.innerWidth) issues.push('container-right');
+            console.log = function () { origLog.apply(console, arguments); addLine('LOG', arguments); };
+            console.warn = function () { origWarn.apply(console, arguments); addLine('WRN', arguments); };
+            console.error = function () { origError.apply(console, arguments); addLine('ERR', arguments); };
+
+            // Viewport debug overlay
+            if (overlay) {
+                function getBreakpoint(w, h) {
+                    const ratio = w / h;
+                    if (w <= 400 && ratio < 0.8) return 'XS PORTRAIT';
+                    if (w <= 500 && ratio < 0.8) return 'PORTRAIT';
+                    if (ratio < 9 / 16) return 'TALL';
+                    return 'LANDSCAPE/SQ';
                 }
-                if (grid) {
-                    const gr = grid.getBoundingClientRect();
-                    if (gr.bottom > window.innerHeight) issues.push('grid-clip');
+
+                function update() {
+                    const w = window.innerWidth;
+                    const h = window.innerHeight;
+                    const ratio = (w / h).toFixed(2);
+                    const bp = getBreakpoint(w, h);
+                    overlay.textContent = `${w}×${h} (${ratio}) ${bp}`;
                 }
-                if (buttons) {
-                    const br = buttons.getBoundingClientRect();
-                    if (br.bottom > window.innerHeight) issues.push('btn-clip');
-                }
-                if (wordDisplay) {
-                    const wr = wordDisplay.getBoundingClientRect();
-                    if (wr.top < 0) issues.push('word-hidden');
-                }
-                return issues;
+
+                window.addEventListener('resize', update);
+                setInterval(update, 3000);
+                update();
             }
-
-            function update() {
-                const w = window.innerWidth;
-                const h = window.innerHeight;
-                const ratio = (w / h).toFixed(2);
-                const bp = getBreakpoint(w, h);
-                const clips = checkClipping();
-                const clipsStr = clips.length ? '\n⚠ ' + clips.join(', ') : '\n✅ No clips';
-                overlay.textContent = `${w}×${h} (${ratio})\n${bp}${clipsStr}`;
-            }
-
-            window.addEventListener('resize', update);
-            setInterval(update, 2000);
-            update();
         })();
     </script>
 </body>

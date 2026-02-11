@@ -1,31 +1,31 @@
 /* @font-face declarations */
 @font-face {
-    font-family: 'Russo One';
-    src: url('fonts/Russo_One/RussoOne-Regular.ttf') format('truetype');
+    font-family: 'Google Sans';
+    src: url('fonts/Google Sans/GoogleSans-Regular.ttf') format('truetype');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Barlow Condensed';
-    src: url('fonts/Barlow_Condensed/BarlowCondensed-Regular.ttf') format('truetype');
-    font-weight: 400;
+    font-family: 'Google Sans';
+    src: url('fonts/Google Sans/GoogleSans-Medium.ttf') format('truetype');
+    font-weight: 500;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Barlow Condensed';
-    src: url('fonts/Barlow_Condensed/BarlowCondensed-SemiBold.ttf') format('truetype');
+    font-family: 'Google Sans';
+    src: url('fonts/Google Sans/GoogleSans-SemiBold.ttf') format('truetype');
     font-weight: 600;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Barlow Condensed';
-    src: url('fonts/Barlow_Condensed/BarlowCondensed-Bold.ttf') format('truetype');
+    font-family: 'Google Sans';
+    src: url('fonts/Google Sans/GoogleSans-Bold.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
     font-display: swap;
@@ -36,7 +36,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Barlow Condensed', Arial, sans-serif;
+    font-family: 'Google Sans', Arial, sans-serif;
 }
 
 /* Opponent word notification animations */
@@ -62,32 +62,8 @@
     }
 }
 
-/* Mobile Viewport Fixes */
-@media (max-width: 768px) {
-    .container {
-        width: 100%;
-        height: 100%;
-        max-width: none;
-        max-height: none;
-        border-radius: 0;
-        overflow: hidden;
-    }
-
-    .game-columns {
-        flex-direction: column;
-        height: calc(100% - 50px);
-    }
-
-    /* Grid should fill available space, not use viewport units */
-    .grid {
-        width: 100%;
-        max-width: 300px;
-        aspect-ratio: 1;
-        margin: 4px auto;
-        flex: none;
-        /* Don't stretch past aspect ratio */
-    }
-}
+/* Mobile portrait layout is handled exclusively below in the DEVVIT-AWARE section
+   using aspect-ratio detection — no max-width breakpoints needed */
 
 /* Fix desktop resize reversion */
 html,
@@ -104,11 +80,10 @@ body {
     color: #fff;
 }
 
-/* Base container - Devvit 'tall' post = 512px height, ~720px desktop width */
+/* Base container — fills available Devvit webview width, 512px fixed height */
 .container {
-    width: 720px;
+    width: 100%;
     height: 512px;
-    max-width: 100%;
     max-height: 100%;
     background-color: #090b0d;
     padding: 10px;
@@ -161,10 +136,10 @@ body {
 }
 
 .header-column.title h1 {
-    font-family: 'Russo One', Arial, sans-serif;
+    font-family: 'Google Sans', Arial, sans-serif;
     font-size: 16px;
     margin: 0;
-    font-weight: bold;
+    font-weight: 700;
     white-space: nowrap;
     letter-spacing: 1px;
 }
@@ -208,8 +183,9 @@ body {
     flex: 2;
 }
 
-/* Section Headers */
+/* Section Headers — Barlow Condensed for column headings */
 .column h2 {
+    font-family: 'Barlow Condensed', Arial, sans-serif;
     font-size: 14px;
     display: flex;
     justify-content: space-between;
@@ -305,6 +281,8 @@ body {
     justify-content: center;
     align-items: center;
     font-size: 22px;
+    font-family: 'Arial Narrow', Arial, sans-serif;
+    font-weight: bold;
     cursor: pointer;
     transition: background-color 0.2s ease;
     user-select: none;
@@ -512,6 +490,7 @@ body {
 }
 
 .player-name {
+    font-family: 'Arial Narrow', Arial, sans-serif;
     font-size: 12px;
     font-weight: bold;
 }
@@ -522,6 +501,7 @@ body {
 }
 
 .score {
+    font-family: 'Arial Narrow', Arial, sans-serif;
     font-size: 14px;
     font-weight: bold;
 }
@@ -1395,6 +1375,7 @@ body {
 }
 
 .screen h2 {
+    font-family: 'Barlow Condensed', Arial, sans-serif;
     font-size: 14px;
     color: #fff;
     display: flex;
@@ -1583,10 +1564,15 @@ body {
 /* Unified Radial Progress Styling */
 .radial-progress-container {
     text-align: center;
-    margin: 20px 0;
-    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 10px auto;
+    padding: 10px;
     background-color: #1d2428;
     border-radius: 5px;
+    width: 100%;
 }
 
 .radial-progress {
@@ -1655,7 +1641,7 @@ body {
 }
 
 .splash-title {
-    font-family: 'Russo One', Arial, sans-serif;
+    font-family: 'Google Sans', Arial, sans-serif;
     font-size: 36px;
     font-weight: bold;
     color: #fff;
@@ -1765,9 +1751,10 @@ body {
    Key rule: ALWAYS show game from top, never clip word-display
    ======================================== */
 
-/* --- PORTRAIT MODE: Stack columns, hide side panels during game --- */
-@media screen and (max-width: 720px),
-screen and (max-aspect-ratio: 3/4) {
+/* --- PORTRAIT MODE: Only when truly narrow portrait (mobile Reddit app ~343x512) ---
+   Uses max-width:500px AND max-aspect-ratio:4/5 — NEVER triggers on
+   square or landscape viewports (desktop browser, desktop Reddit post). */
+@media screen and (max-width: 500px) and (max-aspect-ratio: 4/5) {
     body {
         padding: 0;
         align-items: flex-start;
@@ -1834,9 +1821,15 @@ screen and (max-aspect-ratio: 3/4) {
         overflow: hidden;
     }
 
-    /* GAME SCREEN: Hide leaderboard and words-found columns to prevent clipping */
+    /* GAME SCREEN: Hide side columns on mobile portrait */
     .game-screen .column:first-child,
     .game-screen .column:last-child {
+        display: none !important;
+    }
+
+    /* LOBBY + END: Hide right column (won't fit in portrait) */
+    .lobby-screen .column:last-child,
+    .end-screen .column:last-child {
         display: none !important;
     }
 
@@ -1976,8 +1969,8 @@ screen and (max-aspect-ratio: 3/4) {
     }
 }
 
-/* Extra small devices */
-@media screen and (max-width: 400px) {
+/* Extra small devices — only if truly narrow portrait */
+@media screen and (max-width: 400px) and (max-aspect-ratio: 4/5) {
     .container {
         padding: 4px;
     }
@@ -2001,8 +1994,8 @@ screen and (max-aspect-ratio: 3/4) {
     }
 }
 
-/* Very tall portrait (9:16 type) — give more room to grid */
-@media screen and (max-aspect-ratio: 9/16) {
+/* Very tall portrait (9:16 type) — only on narrow screens */
+@media screen and (max-width: 500px) and (max-aspect-ratio: 9/16) {
     .grid {
         flex: 1.5;
     }
@@ -2030,4 +2023,24 @@ screen and (max-aspect-ratio: 3/4) {
     white-space: pre;
     line-height: 1.4;
     max-width: 200px;
+}
+
+#debug-log {
+    position: fixed;
+    bottom: 24px;
+    left: 4px;
+    right: 4px;
+    max-height: 120px;
+    background: rgba(0, 0, 0, 0.92);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 8px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    z-index: 10000;
+    pointer-events: none;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.3;
+    overflow-y: auto;
 }
