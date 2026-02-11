@@ -188,19 +188,24 @@ class MultiplayerHelper {
     }
 
     /**
-     * Send message to Devvit parent — MUST use devvit-message wrapper
+     * Send message to Devvit parent — try BOTH raw and wrapped formats
      */
     sendToDevvit(message) {
         if (this.isDevvit && window.parent) {
-            // Devvit requires messages wrapped in devvit-message envelope
-            const wrapped = {
-                type: 'devvit-message',
-                data: { message: message }
-            };
             if (this.originalLog) {
-                this.originalLog('📤 Sending to Devvit:', JSON.stringify(message).substring(0, 200));
+                this.originalLog('📤 Sending to Devvit:', message.type);
             }
-            window.parent.postMessage(wrapped, '*');
+            // Send RAW format (what Devvit docs say)
+            try {
+                window.parent.postMessage(message, '*');
+            } catch (e) { /* ignore */ }
+            // Also send WRAPPED format (devvit-message envelope)
+            try {
+                window.parent.postMessage({
+                    type: 'devvit-message',
+                    data: { message: message }
+                }, '*');
+            } catch (e) { /* ignore */ }
         } else {
             if (this.originalWarn) {
                 this.originalWarn('⚠️ sendToDevvit failed: isDevvit=', this.isDevvit, 'parent=', !!window.parent);
