@@ -261,19 +261,37 @@ class WordMaestro {
         this.loadDictionary()
             .then(() => {
                 console.log('📚 Dictionary loaded successfully');
-                // Ensure we don't show any screen until we get data
+                // Dismiss splash screen
+                const splash = document.getElementById('splash-screen');
+                if (splash) {
+                    const status = splash.querySelector('.splash-status');
+                    if (status) status.textContent = 'Ready!';
+                    setTimeout(() => splash.classList.add('hidden'), 400);
+                }
                 if (!this.phase) {
-                    this.showLobbyScreen(); // Show lobby as fallback/loading state
-                    this.updateLobbyScreenPlayers(); // Show "Connecting..."
+                    this.showLobbyScreen();
+                    this.updateLobbyScreenPlayers();
                 }
             })
             .catch(error => {
                 console.error('❌ Failed to initialize game:', error);
-                // this.showLobbyScreen();
+                const splash = document.getElementById('splash-screen');
+                if (splash) splash.classList.add('hidden');
             });
 
         // Initialize audio with safety checks
         this.initializeAudio();
+        this.soundEnabled = true;
+
+        // Sound toggle button
+        const soundBtn = document.getElementById('sound-toggle');
+        if (soundBtn) {
+            soundBtn.addEventListener('click', () => {
+                this.soundEnabled = !this.soundEnabled;
+                soundBtn.textContent = this.soundEnabled ? '\u{1F50A}' : '\u{1F507}';
+                soundBtn.classList.toggle('muted', !this.soundEnabled);
+            });
+        }
 
         this.gameTime = 60; // Game duration in seconds
         this.timeLeft = this.gameTime;
@@ -425,6 +443,7 @@ class WordMaestro {
         this.score = 0;
         this.wordsFound = 0;
         this.usedWords.clear();
+        this.displayedWords = new Set(); // Track words shown in Words Found list
         this.currentWord = '';
         this.selectedTiles = [];
 
@@ -432,7 +451,6 @@ class WordMaestro {
         if (!this.timeLeft || this.timeLeft <= 0 || this.timeLeft > this.gameTime) {
             this.timeLeft = this.gameTime;
         }
-        // Note: this.timeLeft was set by handleInit/handleTimeSync from server
 
         // Update displays
         if (this.scoreDisplay) {
@@ -451,11 +469,27 @@ class WordMaestro {
             wordsList.innerHTML = '';
         }
 
+        // Force re-enable buttons and tiles (fix: unresponsive after previous game end)
+        if (this.submitBtn) this.submitBtn.disabled = false;
+        if (this.clearBtn) this.clearBtn.disabled = false;
+        if (this.shuffleBtn) this.shuffleBtn.disabled = false;
+        if (this.tiles) {
+            this.tiles.forEach(tile => {
+                tile.style.pointerEvents = '';
+                tile.classList.remove('active');
+            });
+        }
+
         // Use SERVER letters if available, only generate locally as fallback
         if (!this.gridLetters || this.gridLetters.length === 0) {
             this.gridLetters = this.generateGridLetters();
         }
         this.initializeGrid();
+
+        // Request fresh leaderboard to avoid stale scores from previous game
+        if (this.multiplayer && this.multiplayer.isMultiplayer()) {
+            this.multiplayer.sendToDevvit({ type: 'getLeaderboard' });
+        }
 
         // Start timer (single timer, not duplicate)
         this.startTimer();
@@ -539,7 +573,7 @@ class WordMaestro {
     }
 
     playSound(soundName) {
-        if (this.audio && this.audioInitialized) {
+        if (this.audio && this.audioInitialized && this.soundEnabled) {
             try {
                 this.audio.playSound(soundName);
             } catch (error) {
@@ -592,7 +626,7 @@ class WordMaestro {
         // Check minimum word length
         if (word.length < this.MIN_WORD_LENGTH) {
             this.playSound('error');
-            this.showMessage('INVALID WORD', 'error');
+            this.showMessage('TOO SHORT', 'error');
             this.resetTiles();
             return;
         }
@@ -600,20 +634,20 @@ class WordMaestro {
         // Validate against dictionary
         if (!this.dictionary.has(word)) {
             this.playSound('error');
-            this.showMessage('INVALID WORD', 'error');
+            this.showMessage('NOT IN DICTIONARY', 'error');
             this.resetTiles();
             return;
         }
 
-        // Check if word has already been used
+        // Check if word has already been used (by self OR opponent)
         if (this.usedWords.has(word)) {
             this.playSound('error');
-            this.showMessage('WORD FOUND', 'warning');
+            this.showMessage('ALREADY FOUND', 'warning');
             this.resetTiles();
             return;
         }
 
-        // Word is valid - process it
+        // Word is valid - process it (no error message before this!)
         this.processValidWord(word.toUpperCase());
     }
 
@@ -621,8 +655,8 @@ class WordMaestro {
         // Play success sound
         this.playSound('success');
 
-        // Show success message
-        this.showMessage(word, 'success');
+        // Show success feedback with the word itself
+        this.showMessage(`${word} +${this.calculateWordScore(word)}`, 'success');
 
         // Add to used words set
         this.usedWords.add(word.toLowerCase());
@@ -660,7 +694,7 @@ class WordMaestro {
             wordsHeader.textContent = `| ${this.wordsFound} Words`;
         }
 
-        // Add word to list
+        // Add word to list (with dedup guard)
         this.addWordToList(word, wordScore);
 
         // Show score animation
@@ -993,34 +1027,26 @@ class WordMaestro {
     }
 
     addWordToList(word, score) {
-        // Find the words-list container
-        const wordsList = document.querySelector('.words-list');
-        if (!wordsList) {
-            console.error('Words list container not found');
-            return;
-        }
+        const wordKey = word.toLowerCase();
+        // Dedup guard: skip if already displayed
+        if (!this.displayedWords) this.displayedWords = new Set();
+        if (this.displayedWords.has(wordKey)) return;
+        this.displayedWords.add(wordKey);
 
-        // Create new word item
+        const wordsList = document.querySelector('.words-list');
+        if (!wordsList) return;
+
         const wordItem = document.createElement('div');
         wordItem.className = 'word-item';
-
-        // Add word and score
         wordItem.innerHTML = `
             <span class="word">${word}</span>
             <span class="score">${score}</span>
         `;
 
-        // Add to beginning of list
         if (wordsList.firstChild) {
             wordsList.insertBefore(wordItem, wordsList.firstChild);
         } else {
             wordsList.appendChild(wordItem);
-        }
-
-        // Update the words found counter in title
-        const wordsFoundTitle = document.querySelector('.column:last-child h2 span');
-        if (wordsFoundTitle) {
-            wordsFoundTitle.textContent = `| ${this.wordsFound} Words`;
         }
     }
 
@@ -1075,18 +1101,26 @@ class WordMaestro {
         // Update local leaderboard from live score updates
         if (data.leaderboard) {
             this.leaderboardData = data.leaderboard;
-            // Update the visible in-game leaderboard immediately
             this.updateLeaderboard();
         }
 
-        // Show notification and add opponent word to Words Found list
+        // Add opponent word to usedWords so it gets rejected locally (fix: 1d)
+        if (data.word) {
+            this.usedWords.add(data.word.toLowerCase());
+        }
+
+        // Add opponent word to Words Found list (skip self-echo)
         if (data.username && data.word && data.username !== this.username) {
-            this.showOpponentWordNotification(data.username, data.word, data.score);
             this.addOpponentWordToList(data.username, data.word, data.score);
         }
     }
 
     addOpponentWordToList(playerName, word, score) {
+        const wordKey = word.toLowerCase();
+        if (!this.displayedWords) this.displayedWords = new Set();
+        if (this.displayedWords.has(wordKey)) return;
+        this.displayedWords.add(wordKey);
+
         const wordsList = document.querySelector('.words-list');
         if (!wordsList) return;
 
@@ -1104,21 +1138,6 @@ class WordMaestro {
         }
     }
 
-    showOpponentWordNotification(playerName, word, score) {
-        const notification = document.createElement('div');
-        notification.className = 'opponent-word-notification';
-        notification.innerHTML = `<strong>${playerName}</strong> found <em>${word}</em> (+${score})`;
-        notification.style.cssText = `
-            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); color: #4ade80; padding: 6px 16px;
-            border-radius: 20px; font-size: 12px; z-index: 9999;
-            animation: slideDown 0.3s ease, fadeOut 0.5s ease 1.5s forwards;
-            pointer-events: none; white-space: nowrap;
-        `;
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 2000);
-    }
-
     // NOTE: handleScoreUpdate is defined ONCE above. Do NOT duplicate.
 
     handleLeaderboard(data) {
@@ -1129,19 +1148,19 @@ class WordMaestro {
 
     // Reset only game state, no navigation
     resetGameState() {
-        // Reset game state
         this.selectedTiles = [];
         this.currentWord = '';
         this.score = 0;
         this.wordsFound = 0;
         this.usedWords.clear();
+        this.displayedWords = new Set();
         this.timeLeft = this.gameTime;
         this.gameActive = false;
 
         // Clear ALL multiplayer data for new session
         this.leaderboardData = null;
-        this.leaderboard = []; // Clear legacy field too
-        this.gridLetters = []; // Will be set by server via newCycle/init
+        this.leaderboard = [];
+        this.gridLetters = [];
         this.recentPlayers = [];
         this.foundWords = [];
         this.playerStats = { wordsFound: 0, longestWord: '', highestScoringWord: '', highestScore: 0 };
@@ -1151,24 +1170,13 @@ class WordMaestro {
             this.wordDisplay.textContent = 'ENTER YOUR WORD';
         }
 
-        // Clear words list
         const wordsList = document.querySelector('.words-list');
-        if (wordsList) {
-            wordsList.innerHTML = '';
-        }
+        if (wordsList) wordsList.innerHTML = '';
 
-        // Reset score displays
-        if (this.scoreDisplay) {
-            this.scoreDisplay.textContent = '0';
-        }
-        if (this.wordsFoundDisplay) {
-            this.wordsFoundDisplay.textContent = '0';
-        }
+        if (this.scoreDisplay) this.scoreDisplay.textContent = '0';
+        if (this.wordsFoundDisplay) this.wordsFoundDisplay.textContent = '0';
 
-        // Reset progress bar
-        if (this.progressBar) {
-            this.progressBar.style.width = '100%';
-        }
+        if (this.progressBar) this.progressBar.style.width = '100%';
 
         // Re-enable buttons and tiles
         if (this.submitBtn) this.submitBtn.disabled = false;
@@ -1177,7 +1185,7 @@ class WordMaestro {
 
         if (this.tiles) {
             this.tiles.forEach(tile => {
-                tile.style.pointerEvents = 'auto';
+                tile.style.pointerEvents = '';
                 tile.classList.remove('active');
             });
         }
@@ -1209,16 +1217,28 @@ class WordMaestro {
         this.phase = data.phase;
         this.timeLeft = data.timeLeft;
 
-        // Track if this is a new game cycle
+        // Display player name in header
+        const nameEl = document.getElementById('player-name');
+        if (nameEl && data.username) {
+            nameEl.textContent = data.username;
+        }
+
+        // Show syncing indicator if joining mid-game
+        if (data.phase === 'game') {
+            const timeDisplay = document.querySelector('.time-left');
+            if (timeDisplay) {
+                timeDisplay.textContent = 'Syncing...';
+                setTimeout(() => this.updateTimeDisplay(), 1500);
+            }
+        }
+
         const isNewGame = data.gameId && data.gameId !== this.gameId;
         this.gameId = data.gameId;
 
-        // Store server letters for use by startGame
         if (data.letters && data.letters.length > 0) {
             this.gridLetters = data.letters;
         }
 
-        // Initialize players list (deduplicated)
         if (data.players && Array.isArray(data.players)) {
             const seen = new Set();
             this.recentPlayers = data.players.filter(p => {
@@ -1229,7 +1249,6 @@ class WordMaestro {
             this.playerCount = this.recentPlayers.length;
         }
 
-        // Show appropriate screen
         if (this.phase === 'lobby') {
             this.showLobbyScreen();
         } else if (this.phase === 'game') {
@@ -1238,7 +1257,6 @@ class WordMaestro {
             this.showEndScreen();
         }
 
-        // Join only once per gameId to prevent duplicates
         if (isNewGame || !this._hasJoined) {
             this.multiplayer.joinGame();
             this._hasJoined = true;
@@ -1402,14 +1420,21 @@ class WordMaestro {
     }
 
     updateEndScreenStats() {
-        // Update game stats
         const gameStats = document.querySelector('.game-stats');
         if (gameStats) {
+            const wordsArr = Array.from(this.usedWords);
+            const longestWord = wordsArr.length > 0
+                ? wordsArr.reduce((a, b) => a.length > b.length ? a : b, '')
+                : '-';
+            const bestScore = wordsArr.length > 0
+                ? Math.max(...wordsArr.map(w => this.calculateWordScore(w)))
+                : 0;
+
             const stats = {
                 'Total Score': this.score,
                 'Words Found': this.usedWords.size,
-                'Longest Word': Array.from(this.usedWords).reduce((a, b) => a.length > b.length ? a : b, ''),
-                'Best Word Score': Math.max(...Array.from(this.usedWords).map(word => this.calculateWordScore(word)))
+                'Longest Word': longestWord.toUpperCase() || '-',
+                'Best Word Score': bestScore || '-'
             };
 
             gameStats.innerHTML = Object.entries(stats)
@@ -1421,10 +1446,11 @@ class WordMaestro {
                 `).join('');
         }
 
-        // Update top words
+        // Update top words (no duplicate <h3> — HTML already has <h2>Top Words</h2>)
         const topWordsContainer = document.querySelector('.top-words');
         if (topWordsContainer) {
-            const topWords = Array.from(this.usedWords)
+            const wordsArr = Array.from(this.usedWords);
+            const topWords = wordsArr
                 .map(word => ({
                     word: word.toUpperCase(),
                     score: this.calculateWordScore(word)
@@ -1432,17 +1458,17 @@ class WordMaestro {
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 5);
 
-            topWordsContainer.innerHTML = `
-                <h3>Top Words</h3>
-                ${topWords.map(({ word, score }) => `
+            if (topWords.length === 0) {
+                topWordsContainer.innerHTML = '<div style="opacity:0.5;padding:8px">No words found</div>';
+            } else {
+                topWordsContainer.innerHTML = topWords.map(({ word, score }) => `
                     <div class="word-row">
                         <span class="word">${word}</span>
                         <span class="points">${score} pts</span>
                     </div>
-                `).join('')}
-            `;
+                `).join('');
+            }
         }
-        // Note: Next game countdown is handled in showEndScreen(), not here
     }
 
     calculateWordPoints(word) {
