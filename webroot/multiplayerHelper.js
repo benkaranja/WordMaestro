@@ -52,28 +52,29 @@ class MultiplayerHelper {
      * Hijack console methods to forward logs to Devvit
      */
     hijackConsole() {
-        this.originalLog = console.log;
-        this.originalWarn = console.warn;
-        this.originalError = console.error;
+        // Use the real originals exposed by the debug panel script (loaded before us)
+        this.originalLog = window._realConsoleLog || console.log;
+        this.originalWarn = window._realConsoleWarn || console.warn;
+        this.originalError = window._realConsoleError || console.error;
 
+        const self = this;
         console.log = (...args) => {
-            this.originalLog.apply(console, args);
+            self.originalLog.apply(console, args);
             // Avoid infinite loop: don't forward logs that originated from sendToDevvit
             if (args[0] && typeof args[0] === 'string' && args[0].includes('📤 Sending to Devvit')) return;
-            this.sendToDevvit({ type: 'log', data: args.join(' ') });
+            self.sendToDevvit({ type: 'log', data: args.join(' ') });
         };
 
         console.warn = (...args) => {
-            this.originalWarn.apply(console, args);
-            this.sendToDevvit({ type: 'log', data: 'WARN: ' + args.join(' ') });
+            self.originalWarn.apply(console, args);
+            self.sendToDevvit({ type: 'log', data: 'WARN: ' + args.join(' ') });
         };
 
         console.error = (...args) => {
-            this.originalError.apply(console, args);
-            this.sendToDevvit({ type: 'log', data: 'ERROR: ' + args.join(' ') });
+            self.originalError.apply(console, args);
+            self.sendToDevvit({ type: 'log', data: 'ERROR: ' + args.join(' ') });
         };
 
-        // Notify that logging is set up
         console.log('✅ Console hijacking active - logs forwarding to Devvit');
     }
 
@@ -81,9 +82,14 @@ class MultiplayerHelper {
      * Detect if running inside Devvit webview
      */
     detectDevvit() {
-        return typeof window !== 'undefined' &&
+        const isDevvit = typeof window !== 'undefined' &&
             window.parent !== window &&
             typeof window.parent.postMessage === 'function';
+        // Use real console to avoid circular dependency during init
+        (window._realConsoleLog || console.log)('🔍 detectDevvit:', isDevvit,
+            'parent!==window:', window.parent !== window,
+            'postMessage:', typeof window.parent?.postMessage);
+        return isDevvit;
     }
 
     /**
@@ -168,7 +174,9 @@ class MultiplayerHelper {
         });
 
         // Notify Devvit that webview is ready
+        console.log('🚀 Sending ready message to Devvit...');
         this.sendToDevvit({ type: 'ready' });
+        console.log('🚀 Ready message sent!');
     }
 
     /**

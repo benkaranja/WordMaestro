@@ -100,6 +100,9 @@ Devvit.addCustomPostType({
         // Unique session ID for this tab instance (handles same-user multi-tab)
         const [sessionId] = useState(() => Math.random().toString(36).substring(2, 8));
 
+        console.log(`🔧 [RENDER] WordMaestro render called. username=${username}, sessionId=${sessionId}`);
+
+
         // Initialize game on first load
         useAsync(async () => {
             const raw = await redis.get(REDIS_KEYS.currentGame);
@@ -145,15 +148,27 @@ Devvit.addCustomPostType({
         // ============================================================
         // TICKER: Runs every second. ALL state comes from Redis.
         // ============================================================
+        let tickCount = 0;
         const ticker = useInterval(async () => {
+            tickCount++;
             try {
                 const state = await getFreshGameState(redis);
-                if (!state) return;
+                if (!state) {
+                    if (tickCount <= 3) console.log(`⏱ [TICK ${tickCount}] No game state!`);
+                    return;
+                }
 
                 const elapsed = Math.floor((Date.now() - state.cycleStartTime) / 1000);
 
+                // Log every 5 ticks for visibility
+                if (tickCount % 5 === 1) {
+                    const { phase, timeLeft } = getPhaseInfo(state.cycleStartTime);
+                    console.log(`⏱ [TICK ${tickCount}] phase=${phase} timeLeft=${timeLeft} elapsed=${elapsed} gameId=${state.gameId}`);
+                }
+
                 // CYCLE EXPIRED: Create a brand new cycle
                 if (elapsed >= TOTAL_CYCLE) {
+                    console.log(`⏱ [TICK ${tickCount}] Cycle expired, creating new cycle`);
                     await createNewCycle();
                     return;
                 }
@@ -164,12 +179,15 @@ Devvit.addCustomPostType({
 
                 // Phase transition logic
                 if (phase !== state.phase) {
+                    console.log(`⏱ [TICK ${tickCount}] Phase transition: ${state.phase} → ${phase}`);
                     if (state.phase === 'lobby' && phase === 'game') {
                         const playerCount = await redis.zCard(REDIS_KEYS.activePlayers(state.gameId));
+                        console.log(`⏱ [TICK ${tickCount}] Lobby→Game check: playerCount=${playerCount}, MIN=${MIN_PLAYERS}`);
                         if (playerCount < MIN_PLAYERS) {
                             // Not enough players, restart lobby
                             nextCycleStart = Date.now();
                             nextPhase = 'lobby';
+                            console.log(`⏱ [TICK ${tickCount}] Not enough players, restarting lobby`);
                         }
                     }
                     // Save updated state
@@ -183,7 +201,6 @@ Devvit.addCustomPostType({
                         data: { message: { type: 'phaseChange', data: phaseData } }
                     };
                     await realtime.send('game_events', phasePayload);
-                    // postMessage already wraps, so send inner only
                     context.ui.webView.postMessage('game_webview', { type: 'phaseChange', data: phaseData });
                     return;
                 }
@@ -206,7 +223,7 @@ Devvit.addCustomPostType({
                     }
                 });
             } catch (e) {
-                console.error('Ticker Error:', e);
+                console.error(`⏱ [TICK ${tickCount}] Error:`, e);
             }
         }, 1000);
 
