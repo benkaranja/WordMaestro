@@ -1526,6 +1526,15 @@ body {
     border-radius: 4px;
 }
 
+.instructions {
+    margin-top: 0px;
+    font-size: 0.9em;
+    color: #ccc;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 8px;
+}
+
 .standings-row .rank {
     font-size: 16px;
     font-weight: bold;
@@ -2212,6 +2221,13 @@ body {
         /* Center grid content */
     }
 
+    /* Force grid to be narrower in portrait to prevent button overlap */
+    @media (max-aspect-ratio: 99/100) {
+        .grid {
+            max-width: 80% !important;
+        }
+    }
+
     .tile {
         font-size: 18px;
         aspect-ratio: 1;
@@ -2393,9 +2409,13 @@ body {
     display: none !important;
 }
 
-/* Mobile Portrait (Tall) - max-aspect-ratio 4/5 (0.8) covering 9:16 phones */
-@media (max-aspect-ratio: 4/5) {
+/* Mobile Portrait (Tall) - Covers 9:16 and similar */
+@media (max-aspect-ratio: 9/11) {
     .splash-bg.square {
+        display: none !important;
+    }
+
+    .splash-bg.landscape {
         display: none !important;
     }
 
@@ -2404,9 +2424,13 @@ body {
     }
 }
 
-/* Landscape (Wide) - min-aspect-ratio 16/10 (1.6) for desktops */
-@media (min-aspect-ratio: 16/10) {
+/* Landscape (Wide) - Covers 16:9 and similar */
+@media (min-aspect-ratio: 11/9) {
     .splash-bg.square {
+        display: none !important;
+    }
+
+    .splash-bg.portrait {
         display: none !important;
     }
 
@@ -2422,8 +2446,8 @@ body {
     transform: translateX(-50%);
     text-align: center;
     color: #fff;
-    z-index: 10;
-    /* Ensure loader is on top */
+    z-index: 99999 !important;
+    /* Force on top */
     background: rgba(0, 0, 0, 0.4);
     padding: 10px 20px;
     border-radius: 12px;
