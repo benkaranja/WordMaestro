@@ -703,7 +703,11 @@ body {
 
 .player-info {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    /* Put name and score on same line */
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
 .player-name {
@@ -2401,4 +2405,59 @@ body {
 
 .splash-subtitle {
     display: none;
+}
+
+/* ========================================
+   RESPONSIVE / PORTRAIT MODE
+   Force portrait layout on small screens (increased to 600px) OR square/portrait aspect ratios
+   ======================================== */
+@media screen and (max-width: 600px),
+screen and (max-aspect-ratio: 11/10) {
+    .container {
+        height: 100%;
+        max-height: none;
+        padding: 6px;
+    }
+
+    .game-columns {
+        flex-direction: column;
+    }
+
+    /* On mobile, reset specific column flexes to auto */
+    .lobby-screen .column:nth-child(1),
+    .end-screen .column:nth-child(1),
+    .lobby-screen .column:nth-child(3),
+    .end-screen .column:nth-child(3),
+    .lobby-screen .column:nth-child(2),
+    .end-screen .column:nth-child(2) {
+        flex: 1;
+        width: 100%;
+    }
+
+    .column {
+        width: 100%;
+        flex: none;
+        /* Let content dictate height */
+        margin-bottom: 8px;
+    }
+
+    .column.center {
+        flex: none;
+    }
+
+    /* Improve visual for instructions in portrait */
+    .instructions p {
+        text-align: left;
+    }
+
+    /* Revert Leaderboard/Words display for mobile? User asked to revert.
+       Assuming "same line" means compact display. */
+    .column h2 {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .column h2 span {
+        margin-top: 0;
+    }
 }

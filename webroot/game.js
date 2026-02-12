@@ -533,11 +533,6 @@ class WordMaestro {
             // Dynamically ramp countdown volume (max 0.3)
             if (this.audio && this.soundEnabled && this.gameActive) {
                 this.audio.updateCountdownVolume(this.timeLeft, this.gameTime);
-
-                // Trigger oscillator countdown for last 15 seconds
-                if (this.timeLeft <= 15 && this.timeLeft > 0) {
-                    this.audio.startCountdown60(this.timeLeft);
-                }
             }
         }
     }
