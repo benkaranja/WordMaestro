@@ -178,8 +178,8 @@ class WordMaestro {
             submitBtn: document.querySelector('button.submit'),
             shuffleBtn: document.querySelector('button.shuffle'),
             progressBar: document.querySelector('.progress-bar'),
-            scoreDisplay: document.querySelector('.header-column:last-child span'),
-            wordsFoundDisplay: document.querySelector('.header-column:first-child span'),
+            scoreDisplay: document.querySelector('#score-display'),
+            wordsFoundDisplay: document.querySelector('#words-found-display'),
             grid: document.querySelector('.grid'),
             wordsList: document.querySelector('.words-list')
         };

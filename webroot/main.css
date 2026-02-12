@@ -288,31 +288,52 @@ body {
     line-height: 1.2;
 }
 
-/* Reorder Right Header: Username then Score */
+/* Reorder Right Header: Score Group (Left) -> Username (Right) */
 .header-column.header-right {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
+    flex-direction: row;
+    /* Side by side */
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
 }
 
-.player-score-group {
+.score-group {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
+    text-align: center;
 }
 
 .player-name-display {
-    font-size: 12px;
+    font-size: 14px;
     color: #ffd700;
     font-weight: bold;
-    margin-right: 4px;
+    text-align: right;
 }
 
 .header-controls {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    right: -30px;
+    /* Move outside or handle differently? */
+    /* Actually sound toggle is absolute positioned in HTML structure relative to header-right */
+}
+
+/* Adjust sound toggle position */
+.header-column.header-right {
+    position: relative;
+    /* For absolute button */
+    padding-right: 30px;
+    /* Make space for button */
+}
+
+.header-controls {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .header-column.title {
@@ -1453,7 +1474,65 @@ body {
     word-break: break-word;
 }
 
-/* Top Words Section */
+/* Final Standings Rows */
+.standings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #2c373d;
+    background-color: rgba(0, 0, 0, 0.2);
+    margin-bottom: 4px;
+    border-radius: 4px;
+}
+
+.standings-row .rank {
+    font-size: 16px;
+    font-weight: bold;
+    color: #eac548;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.standings-row .player-content {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+    /* Ensure text wraps */
+}
+
+.standings-row .player-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.standings-row .player-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    /* Wrap long names */
+}
+
+.standings-row .words-found {
+    font-size: 11px;
+    color: #888;
+}
+
+.standings-row .final-score {
+    font-size: 18px;
+    font-weight: bold;
+    color: #01a484;
+    margin-left: 10px;
+    flex-shrink: 0;
+}
+
 .top-words {
     margin-top: 20px;
     padding: 15px;

@@ -52,7 +52,7 @@
             </div>
             <div class="game-columns">
                 <div class="column">
-                    <h2>Players Joining <span>12</span></h2>
+                    <h2>Players Joining <span id="player-count">0</span></h2>
                     <div class="joining-list">
                         <!-- Dynamic content -->
                     </div>
@@ -86,9 +86,9 @@
         <!-- Game Screen -->
         <div class="screen game-screen">
             <div class="header">
-                <div class="header-column">
+                <div class="header-column header-left">
                     <p>Words Found</p>
-                    <span>0</span>
+                    <span id="words-found-display">0</span>
                 </div>
                 <div class="header-column title">
                     <img src="textures/Game logo 1010x176px.png" class="game-logo" alt="WORD MAESTRO">
@@ -100,12 +100,14 @@
                     </div>
                 </div>
                 <div class="header-column header-right">
+                    <div class="score-group">
+                        <p>Score</p>
+                        <span id="score-display">0</span>
+                    </div>
                     <div class="player-name-display" id="player-name"></div>
                     <div class="header-controls">
                         <button class="sound-toggle" id="sound-toggle" title="Toggle Sound">&#x1f50a;</button>
                     </div>
-                    <p>Score</p>
-                    <span>0</span>
                 </div>
             </div>
             <div class="progress-container">
