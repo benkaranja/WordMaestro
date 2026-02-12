@@ -2088,19 +2088,15 @@ body {
 }
 
 /* ========================================
-   DEVVIT-AWARE RESPONSIVE LAYOUT
-   The Devvit webview uses fixed container sizes:
-   - Desktop wide: ~720x512 (landscape)
-   - Desktop narrow: varies
-   - Mobile Reddit app: ~343x512 or similar (portrait)
-   - Mobile browser: varies
-   Key rule: ALWAYS show game from top, never clip word-display
+   UNIFIED RESPONSIVE LAYOUT (ASPECT-RATIO BASED)
+   PORTRAIT: < 1:1 (Taller than square) -> Mobile Layout
+   LANDSCAPE: >= 1:1 (Square or wider) -> Desktop/Table Layout
    ======================================== */
 
-/* --- PORTRAIT MODE: Only when truly narrow portrait (mobile Reddit app ~343x512) ---
-   Uses max-width:500px AND max-aspect-ratio:4/5 — NEVER triggers on
-   square or landscape viewports (desktop browser, desktop Reddit post). */
-@media screen and (max-width: 500px) and (max-aspect-ratio: 4/5) {
+/* PORTRAIT MODE (Mobile / Narrow) */
+@media (max-aspect-ratio: 99/100) {
+
+    /* --- GLOBAL CONTAINER FIT --- */
     body {
         padding: 0;
         align-items: flex-start;
@@ -2117,6 +2113,12 @@ body {
         overflow: hidden;
     }
 
+    /* --- HIDE SOUND ICON (User Request) --- */
+    .center-controls .sound-toggle {
+        display: none !important;
+    }
+
+    /* --- HEADER COMPACTION --- */
     .header {
         flex-wrap: nowrap;
         margin-bottom: 4px;
@@ -2145,7 +2147,11 @@ body {
         font-size: 13px;
     }
 
-    /* Stack columns vertically */
+    .game-logo {
+        height: 36px;
+    }
+
+    /* --- MAIN COLUMN STACKING --- */
     .game-columns {
         flex-direction: column;
         gap: 4px;
@@ -2158,28 +2164,25 @@ body {
         width: 100%;
         flex: none;
         min-height: auto;
+        margin-bottom: 0;
+        /* Reset margin */
+        background-color: #111517;
     }
 
-    .column.center {
-        order: -1;
-        flex: 1;
-        min-height: 0;
-        overflow: hidden;
-    }
-
-    /* GAME SCREEN: Hide side columns on mobile portrait */
+    /* --- GAME SCREEN LAYOUT --- */
     .game-screen .column:first-child,
     .game-screen .column:last-child {
         display: none !important;
+        /* Hide side columns in game */
     }
 
-    /* LOBBY + END: Hide right column (won't fit in portrait) */
-    .lobby-screen .column:last-child,
-    .end-screen .column:last-child {
-        display: none !important;
+    .game-screen .column.center {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
     }
 
-    /* Game area fills available space */
     .game-area {
         width: 100%;
         flex: 1;
@@ -2189,424 +2192,26 @@ body {
     }
 
     .word-display {
-        height: 36px;
-        min-height: 36px;
-        font-size: 16px;
+        height: 40px;
+        min-height: 40px;
+        font-size: 20px;
         flex-shrink: 0;
+        margin-bottom: 4px;
     }
 
-    /* Issue 5 fix: tiles use full available width */
     .grid {
         width: 100%;
         max-width: min(100%, 400px);
-        margin: 4px auto;
-        gap: 5px;
-        flex: 1;
-        min-height: 0;
-    }
-
-    .tile {
-        font-size: 20px;
-        min-height: 0;
-        aspect-ratio: 1;
-    }
-
-    .tile .points {
-        font-size: 8px;
-    }
-
-    .buttons {
-        flex-shrink: 0;
-        padding: 4px 0;
-        gap: 6px;
-    }
-
-    /* Issue 6 fix: taller buttons on mobile */
-    .buttons button {
-        padding: 10px 14px;
-        font-size: 13px;
-    }
-
-    /* LOBBY + END: Show all 3 columns stacked, scrollable */
-    .lobby-screen .game-columns,
-    .end-screen .game-columns {
-        overflow-y: auto;
-    }
-
-    .lobby-screen .column,
-    .end-screen .column {
-        display: flex !important;
-    }
-
-    /* Issue 8: Hide scoring instructions on mobile lobby, hide top words on end */
-    .lobby-screen .instructions,
-    .lobby-screen .multipliers {
-        display: none !important;
-    }
-
-    .end-screen .top-words {
-        display: none !important;
-    }
-
-    /* Issue 8: Scrollable lists */
-    .joining-list {
-        max-height: 180px;
-        overflow-y: auto;
-    }
-
-    .final-standings {
-        max-height: 200px;
-        overflow-y: auto;
-    }
-
-    .leaderboard-table {
-        max-height: 120px;
-        overflow-y: auto;
-    }
-
-    .words-list {
-        max-height: 100px;
-    }
-
-    /* Radial progress compact */
-    .radial-progress {
-        width: 60px;
-        height: 60px;
-        font-size: 18px;
-    }
-
-    .radial-progress-container {
-        margin: 8px 0;
-        padding: 8px;
-    }
-
-    .instructions p,
-    .multipliers p {
-        font-size: 11px;
-        margin: 4px 0;
-    }
-
-    .column h2 {
-        font-size: 11px;
-        margin-bottom: 4px;
-    }
-
-    .column h2 span {
-        font-size: 8px;
-    }
-
-    .game-stats {
-        margin: 8px 0;
-        padding: 8px;
-    }
-
-    .stat-item {
-        padding: 4px 0;
-    }
-
-    .stat-label,
-    .stat-value {
-        font-size: 11px;
-    }
-
-    .player-name-display {
-        font-size: 9px;
-        max-width: 60px;
-    }
-}
-
-/* Extra small devices — only if truly narrow portrait */
-@media screen and (max-width: 400px) and (max-aspect-ratio: 4/5) {
-    .container {
-        padding: 4px;
-    }
-
-    .header-column.title h1 {
-        font-size: 12px;
-    }
-
-    .grid {
-        max-width: min(100%, 340px);
-        gap: 4px;
-    }
-
-    .tile {
-        font-size: 18px;
-    }
-
-    .buttons button {
-        padding: 9px 12px;
-        font-size: 12px;
-    }
-}
-
-/* Very tall portrait (9:16 type) — only on narrow screens */
-@media screen and (max-width: 500px) and (max-aspect-ratio: 9/16) {
-    .grid {
-        flex: 1.5;
-    }
-
-    .buttons button {
-        padding: 12px 16px;
-    }
-}
-
-/* ========================================
-   SPLASH SCREEN & LOGO
-   ======================================== */
-
-/* Splash Screen */
-.splash-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #0e1113;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-/* Adaptive Splash Backgrounds */
-.splash-backgrounds {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-}
-
-.splash-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: none;
-}
-
-/* Default: Square (fallback) */
-.splash-bg.square {
-    display: block;
-}
-
-/* Mobile Portrait (Tall) - max-aspect-ratio 4/5 (0.8) covering 9:16 phones */
-@media (max-aspect-ratio: 4/5) {
-    .splash-bg.square {
-        display: none;
-    }
-
-    .splash-bg.portrait {
-        display: block;
-    }
-}
-
-/* Landscape (Wide) - min-aspect-ratio 16/10 (1.6) for desktops */
-@media (min-aspect-ratio: 16/10) {
-    .splash-bg.square {
-        display: none;
-    }
-
-    .splash-bg.landscape {
-        display: block;
-    }
-}
-
-.splash-content {
-    position: absolute;
-    /* Replaced relative with absolute */
-    bottom: 40px;
-    /* Minimal padding from bottom */
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    color: #fff;
-    z-index: 2;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 10px 20px;
-    border-radius: 12px;
-    backdrop-filter: blur(4px);
-    width: auto;
-    max-width: 90%;
-}
-
-/* Logo or Title on Splash (removed per user request to rely on image, but keeping styles just in case) */
-.splash-title {
-    display: none;
-}
-
-.splash-subtitle {
-    display: none;
-}
-
-/* ========================================
-   RESPONSIVE / PORTRAIT MODE
-   Force portrait layout on small screens (increased to 600px) OR square/portrait aspect ratios
-   ======================================== */
-/* ========================================
-   RESPONSIVE / PORTRAIT MODE
-   Force portrait layout ONLY on actual portrait screens or distinctly vertical aspect ratios.
-   Exclude 600x512 landscape screens by requiring portrait orientation for width check.
-   ======================================== */
-@media screen and (max-width: 600px) and (orientation: portrait),
-screen and (max-aspect-ratio: 11/10) {
-    .container {
-        height: 100%;
-        max-height: none;
-        padding: 4px;
-        /* Reduced padding for mobile */
-    }
-
-    .game-columns {
-        flex-direction: column;
-    }
-
-    /* On mobile, reset specific column flexes to auto */
-    .lobby-screen .column:nth-child(1),
-    .end-screen .column:nth-child(1),
-    .lobby-screen .column:nth-child(3),
-    .end-screen .column:nth-child(3),
-    .lobby-screen .column:nth-child(2),
-    .end-screen .column:nth-child(2) {
-        flex: 1;
-        width: 100%;
-    }
-
-    .column {
-        width: 100%;
-        flex: none;
-        margin-bottom: 8px;
-    }
-
-    /* --- GAME SCREEN ORDER --- */
-    /* 1. Center (Game Area) */
-    .game-screen .column.center {
-        flex: none;
-        order: 1;
-    }
-
-    /* 2. Left (Leaderboard) */
-    /* DEFAULT: HIDDEN on most portrait screens (1:1 down to 9:16) to prevent squeeze */
-    .game-screen .column:nth-child(1) {
-        order: 2;
-        margin-bottom: 0;
-        display: none;
-    }
-
-    /* ONLY show Leaderboard on very tall screens (taller than 9:16, e.g. 9:18, 9:20 starts to be safe) */
-    @media screen and (max-aspect-ratio: 9/16.5) {
-        .game-screen .column:nth-child(1) {
-            display: flex;
-        }
-    }
-
-    /* 3. Right (Words Found) - Hidden */
-    .game-screen .column:nth-child(3) {
-        display: none;
-    }
-
-    /* --- LOBBY SCREEN ORDER --- */
-    /* 1. Center (Next Game/Instructions) */
-    .lobby-screen .column:nth-child(2) {
-        order: 1;
-        justify-content: flex-start;
-        /* Align top to reduce gaps */
-    }
-
-    /* Reduce padding in lobby center */
-    .lobby-screen .column.center h2 {
-        margin-bottom: 4px;
-        margin-top: 4px;
-    }
-
-    .lobby-screen .radial-progress-container {
-        margin-bottom: 5px;
-        transform: scale(0.9);
-        /* Slightly smaller loader */
-    }
-
-    /* 2. Left (Joining List) */
-    .lobby-screen .column:nth-child(1) {
-        order: 2;
-    }
-
-    /* 3. Right (Scoring/Instructions) - Default Visible */
-    .lobby-screen .column:nth-child(3) {
-        order: 3;
-    }
-
-    /* --- END SCREEN ORDER --- */
-    /* 1. Center (Stats) */
-    .end-screen .column:nth-child(2) {
-        order: 1;
-        /* Display Stats and Next Game side-by-side in portrait */
-        flex-direction: row;
-        align-items: flex-start;
-        /* Align top */
-        justify-content: center;
-        gap: 8px;
-        flex-wrap: nowrap;
-        /* Force side-by-side */
-    }
-
-    /* Wrap the stats and next game in flex items */
-    .stats-wrapper,
-    .next-game-wrapper {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-width: 0;
-        /* Allow shrinking */
-    }
-
-    /* Adjust children for side-by-side layout */
-    .game-stats {
-        width: 100%;
-        font-size: 0.85em;
-        /* Smaller text */
-        margin-bottom: 0;
-    }
-
-    .next-game-wrapper .radial-progress-container {
-        margin-top: 0;
-        transform: scale(0.85);
-        /* Smaller loader */
-    }
-
-    .next-game-wrapper h3 {
-        font-size: 12px;
-        margin-bottom: 4px;
-        text-align: center;
-    }
-
-    /* --- SQUASH FIX: Reduce vertical heights in portrait --- */
-    .game-logo {
-        height: 36px;
-        /* Smaller logo (was 48px) */
-    }
-
-    .word-display {
-        height: 40px;
-        /* Smaller display (was 53px) */
-        font-size: 20px;
-        margin-bottom: 4px;
-    }
-
-    .grid {
-        margin: 2px 0;
+        margin: 2px auto;
         gap: 2px;
-        /* Tighter grid */
+        flex: 1;
+        min-height: 0;
     }
 
     .tile {
         font-size: 18px;
-        /* Smaller font on tiles */
-        border-radius: 4px;
+        aspect-ratio: 1;
+        min-height: 0;
     }
 
     .tile .points {
@@ -2616,63 +2221,176 @@ screen and (max-aspect-ratio: 11/10) {
     }
 
     .buttons {
+        flex-shrink: 0;
         padding: 4px 0;
         gap: 6px;
     }
 
     .buttons button {
-        padding: 8px 10px;
-        /* Smaller buttons */
+        padding: 10px 14px;
         font-size: 13px;
     }
 
-    .header {
-        margin-bottom: 4px;
+    /* --- LOBBY SCREEN LAYOUT --- */
+    /* Order: 
+       1. Next Game / Instructions (Center)
+       2. Players Joining (Left)
+       3. Scoring (Right) - Hidden to save space if needed, keeping for now
+    */
+    .lobby-screen .game-columns {
+        overflow-y: auto;
     }
 
+    .lobby-screen .column {
+        display: flex !important;
+        /* Ensure all are visible blocks in stack */
+        flex: none;
+    }
 
-    /* 2. Left (Leaderboard) */
+    .lobby-screen .column:nth-child(2) {
+        order: 1;
+    }
+
+    .lobby-screen .column:nth-child(1) {
+        order: 2;
+    }
+
+    .lobby-screen .column:nth-child(3) {
+        order: 3;
+    }
+
+    /* Compact Lobby Center */
+    .lobby-screen .radial-progress-container {
+        margin: 5px auto;
+        padding: 5px;
+        transform: scale(0.9);
+    }
+
+    .lobby-screen .joining-list {
+        max-height: 150px;
+        overflow-y: auto;
+    }
+
+    /* --- END SCREEN LAYOUT (FIXED ALIGNMENT) --- */
+    .end-screen .game-columns {
+        overflow-y: auto;
+    }
+
+    /* Reorder: 
+       1. Stats + Next Game (Center) 
+       2. Leaderboard (Left component)
+       3. Top Words (Right component) 
+    */
+    .end-screen .column:nth-child(2) {
+        order: 1;
+        display: flex;
+        flex-direction: row;
+        /* Horizontal alignment */
+        flex-wrap: nowrap;
+        /* No wrapping */
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 8px;
+        background-color: #111517;
+    }
+
     .end-screen .column:nth-child(1) {
         order: 2;
     }
 
-    /* 3. Right (Top Words) - Default Visible */
     .end-screen .column:nth-child(3) {
         order: 3;
     }
 
-    /* Square-ish screens (Short Portrait): HIDE 3rd Columns to save space */
-    @media screen and (max-aspect-ratio: 11/10) and (min-aspect-ratio: 1/1) {
-
-        /* Game Screen: Hide Leaderboard (already handled, but explicit here) */
-        .game-screen .column:nth-child(1) {
-            display: none;
-        }
-
-        /* Lobby: Hide Right Column */
-        .lobby-screen .column:nth-child(3) {
-            display: none;
-        }
-
-        /* End Screen: Hide Right Column */
-        .end-screen .column:nth-child(3) {
-            display: none;
-        }
+    /* Stats & Timer Wrappers */
+    .stats-wrapper,
+    .next-game-wrapper {
+        flex: 1;
+        min-width: 0;
+        /* Allow shrinking */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 
-    /* Improve visual for instructions in portrait */
-    .instructions p {
-        text-align: left;
+    /* Game Statistics Box */
+    .game-stats {
+        width: 100%;
+        margin: 0;
+        padding: 8px;
+        background-color: #1d2428;
+        border-radius: 5px;
     }
 
-    /* Revert Leaderboard/Words display for mobile? User asked to revert.
-       Assuming "same line" means compact display. */
-    .column h2 {
-        flex-direction: row;
-        justify-content: space-between;
+    .stat-item {
+        padding: 4px 0;
     }
 
-    .column h2 span {
-        margin-top: 0;
+    .stat-label {
+        font-size: 11px;
+    }
+
+    .stat-value {
+        font-size: 12px;
+    }
+
+    /* Next Game Timer Box */
+    .next-game-wrapper .radial-progress-container {
+        width: 100%;
+        margin: 0;
+        padding: 8px;
+        background-color: #1d2428;
+        border-radius: 5px;
+        height: 100%;
+        /* Match height of stats if possible */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .next-game-wrapper h3 {
+        font-size: 12px;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+
+    .radial-progress {
+        width: 60px;
+        height: 60px;
+        font-size: 18px;
+        margin: 0 auto;
+    }
+
+    /* Lists in End Screen */
+    .final-standings,
+    .top-words {
+        max-height: 180px;
+        overflow-y: auto;
+    }
+}
+
+/* LANDSCAPE MODE (Default / Desktop) - Implicitly handled by default styles, 
+   but we ensure splash screen logic matches */
+@media (min-aspect-ratio: 1/1) {
+
+    /* Ensure splash is landscape/square */
+    .splash-bg.portrait {
+        display: none;
+    }
+
+    .splash-bg.square {
+        /* or landscape */
+        display: block;
+    }
+}
+
+@media (min-aspect-ratio: 16/10) {
+    .splash-bg.square {
+        display: none;
+    }
+
+    .splash-bg.landscape {
+        display: block;
     }
 }
