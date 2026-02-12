@@ -725,7 +725,7 @@ class WordMaestro {
         this.playSound('success');
 
         // Show success feedback with the word itself
-        this.showMessage(`${word} +${this.calculateWordScore(word)}`, 'success');
+        this.showMessage(`${word}`, 'success');
 
         // Add to used words set
         this.usedWords.add(word.toLowerCase());

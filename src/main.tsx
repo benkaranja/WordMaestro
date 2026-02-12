@@ -345,8 +345,10 @@ Devvit.addCustomPostType({
                     const { phase, timeLeft } = getPhaseInfo(state.cycleStartTime);
                     console.log(`📱 [READY] Phase=${phase} TimeLeft=${timeLeft}`);
 
-                    // Register player
-                    const playerKey = `${currentUsername}:${sessionId}`;
+                    // Use stable ID: if logged in, use username. If guest, use session.
+                    // This fixes "scores lost" on reload.
+                    const playerKey = currentUsername !== 'Guest' ? currentUsername : `Guest-${sessionId}`;
+
                     await redis.zAdd(REDIS_KEYS.activePlayers(state.gameId), {
                         member: playerKey,
                         score: Date.now()
@@ -382,7 +384,7 @@ Devvit.addCustomPostType({
                     const playerCount = await redis.zCard(REDIS_KEYS.activePlayers(state.gameId));
                     if (playerCount >= MAX_PLAYERS) break;
 
-                    const playerKey = `${currentUsername}:${sessionId}`;
+                    const playerKey = currentUsername !== 'Guest' ? currentUsername : `Guest-${sessionId}`;
                     const existingScore = await redis.zScore(REDIS_KEYS.activePlayers(state.gameId), playerKey);
                     if (existingScore !== undefined) {
                         const currentCount = await redis.zCard(REDIS_KEYS.activePlayers(state.gameId));
@@ -420,17 +422,18 @@ Devvit.addCustomPostType({
                     const { phase } = getPhaseInfo(state.cycleStartTime);
                     if (phase !== 'game') break;
 
-                    const scoreKey = `${currentUsername}:${sessionId}`;
+                    // Stable score key
+                    const scoreKey = currentUsername !== 'Guest' ? currentUsername : `Guest-${sessionId}`;
 
                     // Check duplicates
                     const globalCheck = await redis.zScore(REDIS_KEYS.submittedWords(state.gameId), word);
                     if (globalCheck !== undefined) break;
-                    const personalCheck = await redis.zScore(REDIS_KEYS.playerWords(state.gameId, currentUsername), word);
+                    const personalCheck = await redis.zScore(REDIS_KEYS.playerWords(state.gameId, scoreKey), word);
                     if (personalCheck !== undefined) break;
 
                     // Record word
                     await redis.zAdd(REDIS_KEYS.submittedWords(state.gameId), { member: word, score: Date.now() });
-                    await redis.zAdd(REDIS_KEYS.playerWords(state.gameId, currentUsername), { member: word, score: 0 });
+                    await redis.zAdd(REDIS_KEYS.playerWords(state.gameId, scoreKey), { member: word, score: 0 });
 
                     // Update game score
                     const currentScore = await redis.zScore(REDIS_KEYS.gameScores(state.gameId), scoreKey) || 0;
