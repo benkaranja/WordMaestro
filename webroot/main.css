@@ -278,6 +278,12 @@ body {
     color: #ffd700;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+    /* Limit width to prevent overflow */
+    text-align: center;
 }
 
 /* Sound Toggle: Move to absolute top-right */
@@ -2484,11 +2490,18 @@ screen and (max-aspect-ratio: 11/10) {
     }
 
     /* 2. Left (Leaderboard) */
+    /* DEFAULT: HIDDEN on most portrait screens (1:1 down to 9:16) to prevent squeeze */
     .game-screen .column:nth-child(1) {
         order: 2;
         margin-bottom: 0;
-        display: flex;
-        /* Default: Visible */
+        display: none;
+    }
+
+    /* ONLY show Leaderboard on very tall screens (taller than 9:16, e.g. 9:18, 9:20 starts to be safe) */
+    @media screen and (max-aspect-ratio: 9/16.5) {
+        .game-screen .column:nth-child(1) {
+            display: flex;
+        }
     }
 
     /* 3. Right (Words Found) - Hidden */
@@ -2500,6 +2513,20 @@ screen and (max-aspect-ratio: 11/10) {
     /* 1. Center (Next Game/Instructions) */
     .lobby-screen .column:nth-child(2) {
         order: 1;
+        justify-content: flex-start;
+        /* Align top to reduce gaps */
+    }
+
+    /* Reduce padding in lobby center */
+    .lobby-screen .column.center h2 {
+        margin-bottom: 4px;
+        margin-top: 4px;
+    }
+
+    .lobby-screen .radial-progress-container {
+        margin-bottom: 5px;
+        transform: scale(0.9);
+        /* Slightly smaller loader */
     }
 
     /* 2. Left (Joining List) */
@@ -2516,7 +2543,38 @@ screen and (max-aspect-ratio: 11/10) {
     /* 1. Center (Stats) */
     .end-screen .column:nth-child(2) {
         order: 1;
+        /* Display Stats and Next Game side-by-side in portrait */
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        /* Allow wrap if very narrow */
     }
+
+    /* Adjust children for side-by-side layout */
+    .end-screen .column:nth-child(2) .game-stats {
+        flex: 1;
+        min-width: 140px;
+        font-size: 0.9em;
+        /* Slightly smaller text */
+        margin-bottom: 0;
+    }
+
+    .end-screen .column:nth-child(2) .next-game {
+        flex: 1;
+        min-width: 120px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .end-screen .column:nth-child(2) .next-game .radial-progress {
+        width: 80px;
+        height: 80px;
+        font-size: 18px;
+    }
+
 
     /* 2. Left (Leaderboard) */
     .end-screen .column:nth-child(1) {
