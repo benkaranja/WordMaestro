@@ -2377,41 +2377,34 @@ body {
         overflow-y: auto;
     }
 
-    /* --- SPLASH SCREEN (PORTRAIT) --- */
-    .splash-bg.portrait {
-        display: block !important;
-    }
+}
 
-    .splash-bg.landscape,
+/* ========================================
+   SPLASH SCREEN (Reverted to v0.0.12 Logic)
+   ======================================== */
+
+/* Default: Square (fallback for near-square screens) */
+.splash-bg.square {
+    display: block !important;
+}
+
+.splash-bg.portrait,
+.splash-bg.landscape {
+    display: none !important;
+}
+
+/* Mobile Portrait (Tall) - max-aspect-ratio 4/5 (0.8) covering 9:16 phones */
+@media (max-aspect-ratio: 4/5) {
     .splash-bg.square {
         display: none !important;
     }
 
-    .splash-content {
-        z-index: 10;
-        /* Ensure loader is on top */
-    }
-}
-
-/* LANDSCAPE MODE (Default / Desktop) - Implicitly handled by default styles, 
-   but we ensure splash screen logic matches */
-@media (min-aspect-ratio: 1/1) {
-
-    /* Ensure splash is landscape/square */
     .splash-bg.portrait {
-        display: none !important;
-    }
-
-    .splash-bg.square {
-        /* Default for 1:1 */
         display: block !important;
     }
-
-    .splash-bg.landscape {
-        display: none !important;
-    }
 }
 
+/* Landscape (Wide) - min-aspect-ratio 16/10 (1.6) for desktops */
 @media (min-aspect-ratio: 16/10) {
     .splash-bg.square {
         display: none !important;
@@ -2421,3 +2414,23 @@ body {
         display: block !important;
     }
 }
+
+.splash-content {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: #fff;
+    z-index: 10;
+    /* Ensure loader is on top */
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    width: auto;
+    max-width: 90%;
+}
+
+/* LANDSCAPE MODE (Default / Desktop) - Implicitly handled by default styles, 
+   but we ensure splash screen logic matches */
