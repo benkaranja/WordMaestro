@@ -262,16 +262,79 @@ body {
     justify-content: center;
 }
 
-/* Align Words Found count to left */
-.header-column:first-child {
-    align-items: flex-start;
-    text-align: left;
+/* Header Center Controls (Name + Audio) */
+.center-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: -5px;
+    /* Pull up closer to logo */
+    margin-bottom: 5px;
 }
 
-/* Align Score/Username to right */
+.center-controls .player-name-display {
+    font-size: 14px;
+    /* Increased readability */
+    color: #ffd700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    margin: 0;
+}
+
+.center-controls .sound-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.center-controls .sound-toggle:hover {
+    color: #fff;
+}
+
+/* Header Columns Alignment */
+.header-column.header-left,
+.header-column.header-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* Center everything horizontally */
+    text-align: center;
+}
+
+/* Ensure text inside is centered */
+.header-column.header-left p,
+.header-column.header-right p {
+    margin: 0;
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.header-column.header-left span,
+.header-column.header-right span {
+    font-size: 20px;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1;
+}
+
+/* Remove old specific alignments */
+.header-column:first-child {
+    align-items: center;
+    /* Override previous left-align */
+    text-align: center;
+}
+
 .header-column:last-child {
-    align-items: flex-end;
-    text-align: right;
+    align-items: center;
+    /* Override previous right-align */
+    text-align: center;
 }
 
 .header-column p {
@@ -288,53 +351,14 @@ body {
     line-height: 1.2;
 }
 
-/* Reorder Right Header: Score Group (Left) -> Username (Right) */
-.header-column.header-right {
-    display: flex;
-    flex-direction: row;
-    /* Side by side */
-    justify-content: flex-end;
-    align-items: center;
-    gap: 12px;
-}
+/* Clean up old header-right specific styles */
+/* .header-column.header-right rules removed */
+/* .player-name-display rules removed (now in .center-controls) */
+/* .header-controls rules removed (now in .center-controls) */
 
-.score-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-.player-name-display {
-    font-size: 14px;
-    color: #ffd700;
-    font-weight: bold;
-    text-align: right;
-}
-
-.header-controls {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    right: -30px;
-    /* Move outside or handle differently? */
-    /* Actually sound toggle is absolute positioned in HTML structure relative to header-right */
-}
-
-/* Adjust sound toggle position */
-.header-column.header-right {
-    position: relative;
-    /* For absolute button */
-    padding-right: 30px;
-    /* Make space for button */
-}
-
-.header-controls {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-}
+/* Clean up sound toggle absolute positioning */
+/* .header-column.header-right positioning removed */
+/* .header-controls positioning removed */
 
 .header-column.title {
     display: flex;
@@ -2451,11 +2475,20 @@ screen and (max-aspect-ratio: 11/10) {
     .game-screen .column:nth-child(1) {
         order: 2;
         margin-bottom: 0;
+        /* Default: Show on tall screens (mobile) */
+        display: flex;
     }
 
     /* Words Found (Right Column) - Hide completely */
     .game-screen .column:nth-child(3) {
         display: none;
+    }
+
+    /* Square-ish screens: HIDE Leaderboard to save space */
+    @media screen and (max-aspect-ratio: 11/10) and (min-aspect-ratio: 1/2) {
+        .game-screen .column:nth-child(1) {
+            display: none;
+        }
     }
 
     /* Improve visual for instructions in portrait */

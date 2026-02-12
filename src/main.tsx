@@ -367,12 +367,29 @@ Devvit.addCustomPostType({
                             timeLeft,
                             gameId: state.gameId,
                             letters: state.letters,
+                            displayName: currentUsername, // Default fallback
                             players: players.map((p: any) => ({
                                 name: p.member.includes(':') ? p.member.split(':')[0] : p.member,
                                 status: 'online'
                             }))
                         }
                     };
+
+                    // Try to fetch real display name
+                    try {
+                        const currentUser = await context.reddit.getCurrentUser();
+                        if (currentUser) {
+                            // Use 'username' as fallback if displayName is not available on the type
+                            // Note: Devvit types might not expose 'displayName' yet, checking at runtime or casting
+                            const dName = (currentUser as any).displayName || currentUser.username;
+                            initPayload.data.displayName = dName;
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+
+                    // (Redundant code removed)
+
                     context.ui.webView.postMessage('game_webview', initPayload);
                     break;
                 }
@@ -401,7 +418,17 @@ Devvit.addCustomPostType({
                     });
 
                     const newCount = await redis.zCard(REDIS_KEYS.activePlayers(state.gameId));
-                    const joinData = { username: currentUsername, playerCount: newCount };
+                    let dName = currentUsername;
+                    try {
+                        const currentUser = await context.reddit.getCurrentUser();
+                        if (currentUser) {
+                            dName = (currentUser as any).displayName || currentUser.username;
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+
+                    const joinData = { username: currentUsername, displayName: dName, playerCount: newCount };
                     const joinPayload = {
                         type: 'devvit-message' as const,
                         data: { message: { type: 'playerJoined', data: joinData } }

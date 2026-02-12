@@ -1345,8 +1345,11 @@ class WordMaestro {
         // Add to recent players list (deduplicate by name)
         if (!this.recentPlayers) this.recentPlayers = [];
         const alreadyExists = this.recentPlayers.some(p => p.name === data.username);
+
+        const dName = data.displayName || data.username;
+
         if (!alreadyExists) {
-            this.recentPlayers.unshift({ name: data.username, status: 'joining' });
+            this.recentPlayers.unshift({ name: data.username, displayName: dName, status: 'joining' });
             if (this.recentPlayers.length > 7) this.recentPlayers.pop();
         }
 
@@ -1393,12 +1396,13 @@ class WordMaestro {
 
         // Update joining players list
         // Use recentPlayers if we have them, otherwise show empty or "Waiting..."
-        const playersToShow = this.recentPlayers || [{ name: this.username || 'You', status: 'ready' }];
+        // Use displayName if available, fallback to name (username)
+        const playersToShow = this.recentPlayers || [{ name: this.username || 'You', displayName: this.displayName, status: 'ready' }];
 
         joiningList.innerHTML = playersToShow
             .map(player => `
                 <div class="joining-player">
-                    <span class="player-name">${player.name}</span>
+                    <span class="player-name">${player.displayName || player.name}</span>
                     <span class="status" status="${player.status || 'ready'}">${player.status || 'ready'}</span>
                 </div>
             `).join('');
