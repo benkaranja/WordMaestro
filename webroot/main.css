@@ -2443,6 +2443,19 @@ screen and (max-aspect-ratio: 11/10) {
 
     .column.center {
         flex: none;
+        order: 1;
+        /* Game Area First */
+    }
+
+    /* Leaderboard (Left Column) - Show Second */
+    .game-screen .column:nth-child(1) {
+        order: 2;
+        margin-bottom: 0;
+    }
+
+    /* Words Found (Right Column) - Hide completely */
+    .game-screen .column:nth-child(3) {
+        display: none;
     }
 
     /* Improve visual for instructions in portrait */
