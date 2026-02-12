@@ -478,6 +478,12 @@ class WordMaestro {
             wordsList.innerHTML = '';
         }
 
+        // Clear leaderboard
+        const leaderboardTable = document.querySelector('.leaderboard-table');
+        if (leaderboardTable) {
+            leaderboardTable.innerHTML = '';
+        }
+
         // Force re-enable buttons and tiles (fix: unresponsive after previous game end)
         if (this.submitBtn) this.submitBtn.disabled = false;
         if (this.clearBtn) this.clearBtn.disabled = false;
@@ -524,9 +530,14 @@ class WordMaestro {
             const progress = (this.timeLeft / this.gameTime) * 100;
             progressBar.style.width = `${progress}%`;
 
-            // Dynamically ramp countdown volume
+            // Dynamically ramp countdown volume (max 0.3)
             if (this.audio && this.soundEnabled && this.gameActive) {
                 this.audio.updateCountdownVolume(this.timeLeft, this.gameTime);
+
+                // Trigger oscillator countdown for last 15 seconds
+                if (this.timeLeft <= 15 && this.timeLeft > 0) {
+                    this.audio.startCountdown60(this.timeLeft);
+                }
             }
         }
     }
@@ -690,7 +701,7 @@ class WordMaestro {
 
         // Check minimum word length
         if (word.length < this.MIN_WORD_LENGTH) {
-            this.playSound('error');
+            this.playSound('error', 0.9); // Reduced volume by 10%
             this.showMessage('TOO SHORT', 'error');
             this.resetTiles();
             setTimeout(() => { this._submitting = false; }, 700);
@@ -699,7 +710,7 @@ class WordMaestro {
 
         // Validate against dictionary
         if (!this.dictionary.has(word)) {
-            this.playSound('error');
+            this.playSound('error', 0.9); // Reduced volume
             this.showMessage('NOT IN DICTIONARY', 'error');
             this.resetTiles();
             setTimeout(() => { this._submitting = false; }, 700);
@@ -708,7 +719,7 @@ class WordMaestro {
 
         // Check if word has already been used (by self OR opponent)
         if (this.usedWords.has(word)) {
-            this.playSound('error');
+            this.playSound('error', 0.9); // Reduced volume
             this.showMessage('ALREADY FOUND', 'warning');
             this.resetTiles();
             setTimeout(() => { this._submitting = false; }, 700);
@@ -1417,13 +1428,23 @@ class WordMaestro {
         }
 
         leaderboard.innerHTML = data
-            .map(player => {
+            .map((player, index) => {
                 const displayName = player.member.includes(':') ? player.member.split(':')[0] : player.member;
+
+                // Rank icons 1, 2, 3
+                let rankDisplay = '';
+                if (index === 0) rankDisplay = '<span class="rank-icon" style="color:#ffd700">1</span>';
+                else if (index === 1) rankDisplay = '<span class="rank-icon" style="color:#c0c0c0">2</span>';
+                else if (index === 2) rankDisplay = '<span class="rank-icon" style="color:#cd7f32">3</span>';
+
                 return `
                     <div class="table-row">
-                        <div class="player-name">${displayName}</div>
-                        <div class="word-count"></div>
-                        <div class="score">${player.score}</div>
+                        <div class="player-info">
+                             <div class="player-name">
+                                ${rankDisplay} ${displayName}
+                             </div>
+                             <div class="score">${player.score}</div>
+                        </div>
                     </div>
                 `;
             }).join('');

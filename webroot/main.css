@@ -250,11 +250,69 @@ body {
     margin-bottom: 8px;
     flex-shrink: 0;
     /* Don't shrink header */
+    /* Don't shrink header */
+    padding: 0 4px;
 }
 
 .header-column {
     flex: 1;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Align Words Found count to left */
+.header-column:first-child {
+    align-items: flex-start;
+    text-align: left;
+}
+
+/* Align Score/Username to right */
+.header-column:last-child {
+    align-items: flex-end;
+    text-align: right;
+}
+
+.header-column p {
+    font-size: 12px;
+    color: #aaa;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.header-column span {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1.2;
+}
+
+/* Reorder Right Header: Username then Score */
+.header-column.header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.player-score-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.player-name-display {
+    font-size: 12px;
+    color: #ffd700;
+    font-weight: bold;
+    margin-right: 4px;
+}
+
+.header-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
 }
 
 .header-column.title {
@@ -319,19 +377,25 @@ body {
     font-family: 'Barlow Condensed', Arial, sans-serif;
     font-size: 14px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    /* Move counts below title */
+    align-items: flex-start;
+    justify-content: center;
     margin-bottom: 10px;
+    line-height: 1.2;
 }
 
 .column h2 span {
     font-size: 10px;
     font-weight: 600;
-    padding: 2px 6px;
-    background-color: #191f22;
-    border-radius: 3px;
-    color: #ddd;
+    padding: 2px 0;
+    /* Remove padding as it's own line now */
+    background-color: transparent;
+    /* Remove background */
+    border-radius: 0;
+    color: #888;
     font-family: 'Arial Narrow', Arial, sans-serif;
+    margin-top: 2px;
 }
 
 /* Game Area - uses all available height in center column */
@@ -603,6 +667,7 @@ body {
 }
 
 /* Leaderboard Styles */
+/* Leaderboard Styles */
 .leaderboard-table {
     margin-top: 5px;
 }
@@ -626,15 +691,28 @@ body {
     font-weight: bold;
 }
 
-.word-count {
-    font-size: 10px;
-    color: #888;
+/* Rank Icons: Remove skew */
+.rank-icon {
+    display: inline-block;
+    width: 16px;
+    text-align: center;
+    margin-right: 4px;
+    font-weight: bold;
+    font-style: normal;
+    /* Fix skew */
+}
+
+/* Remove colored score on right */
+.score-right {
+    display: none;
 }
 
 .score {
     font-family: 'Arial Narrow', Arial, sans-serif;
     font-size: 14px;
     font-weight: bold;
+    color: #01a484;
+    /* Use green color for bottom score */
 }
 
 /* Progress Bar Animation */
@@ -852,6 +930,15 @@ body {
 }
 
 /* Column Styling (shared with game screen) */
+/* Column Styling (shared with game screen) */
+.lobby-screen .column:nth-child(1),
+.end-screen .column:nth-child(1),
+.lobby-screen .column:nth-child(3),
+.end-screen .column:nth-child(3) {
+    flex: 3;
+    /* 30% */
+}
+
 .lobby-screen .column:nth-child(2),
 .end-screen .column:nth-child(2) {
     display: flex;
@@ -859,6 +946,7 @@ body {
     align-items: center;
     text-align: center;
     flex: 4;
+    /* 40% */
 }
 
 .lobby-screen .radial-progress {
@@ -885,6 +973,7 @@ body {
 }
 
 /* Lobby Screen Specific */
+/* Lobby Screen Specific */
 .joining-list {
     margin-top: 10px;
 }
@@ -894,6 +983,10 @@ body {
     align-items: center;
     padding: 8px 0;
     border-bottom: 1px solid #191f22;
+    white-space: normal;
+    /* Allow text wrapping */
+    overflow-wrap: anywhere;
+    /* Break long words */
 }
 
 .countdown-timer {
@@ -1030,9 +1123,12 @@ body {
 }
 
 /* Game statistics section */
+/* Game statistics section */
 .game-statistics {
     width: 100%;
     text-align: center;
+    flex: 1;
+    /* Allow auto width expansion */
 }
 
 .game-statistics h2 {
