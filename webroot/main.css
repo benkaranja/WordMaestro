@@ -268,27 +268,33 @@ body {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    margin-top: -5px;
-    /* Pull up closer to logo */
-    margin-bottom: 5px;
+    margin-top: -8px;
+    /* Tighter spacing */
+    margin-bottom: 2px;
 }
 
 .center-controls .player-name-display {
     font-size: 14px;
-    /* Increased readability */
     color: #ffd700;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     margin: 0;
 }
 
+/* Sound Toggle: Move to absolute top-right */
 .center-controls .sound-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 18px;
+    /* Slightly larger for touch */
     color: rgba(255, 255, 255, 0.7);
-    padding: 4px;
+    padding: 8px;
+    /* Larger hit area */
     transition: color 0.2s;
+    z-index: 20;
 }
 
 .center-controls .sound-toggle:hover {
@@ -2435,12 +2441,18 @@ body {
    RESPONSIVE / PORTRAIT MODE
    Force portrait layout on small screens (increased to 600px) OR square/portrait aspect ratios
    ======================================== */
-@media screen and (max-width: 600px),
+/* ========================================
+   RESPONSIVE / PORTRAIT MODE
+   Force portrait layout ONLY on actual portrait screens or distinctly vertical aspect ratios.
+   Exclude 600x512 landscape screens by requiring portrait orientation for width check.
+   ======================================== */
+@media screen and (max-width: 600px) and (orientation: portrait),
 screen and (max-aspect-ratio: 11/10) {
     .container {
         height: 100%;
         max-height: none;
-        padding: 6px;
+        padding: 4px;
+        /* Reduced padding for mobile */
     }
 
     .game-columns {
@@ -2461,32 +2473,76 @@ screen and (max-aspect-ratio: 11/10) {
     .column {
         width: 100%;
         flex: none;
-        /* Let content dictate height */
         margin-bottom: 8px;
     }
 
-    .column.center {
+    /* --- GAME SCREEN ORDER --- */
+    /* 1. Center (Game Area) */
+    .game-screen .column.center {
         flex: none;
         order: 1;
-        /* Game Area First */
     }
 
-    /* Leaderboard (Left Column) - Show Second */
+    /* 2. Left (Leaderboard) */
     .game-screen .column:nth-child(1) {
         order: 2;
         margin-bottom: 0;
-        /* Default: Show on tall screens (mobile) */
         display: flex;
+        /* Default: Visible */
     }
 
-    /* Words Found (Right Column) - Hide completely */
+    /* 3. Right (Words Found) - Hidden */
     .game-screen .column:nth-child(3) {
         display: none;
     }
 
-    /* Square-ish screens: HIDE Leaderboard to save space */
-    @media screen and (max-aspect-ratio: 11/10) and (min-aspect-ratio: 1/2) {
+    /* --- LOBBY SCREEN ORDER --- */
+    /* 1. Center (Next Game/Instructions) */
+    .lobby-screen .column:nth-child(2) {
+        order: 1;
+    }
+
+    /* 2. Left (Joining List) */
+    .lobby-screen .column:nth-child(1) {
+        order: 2;
+    }
+
+    /* 3. Right (Scoring/Instructions) - Default Visible */
+    .lobby-screen .column:nth-child(3) {
+        order: 3;
+    }
+
+    /* --- END SCREEN ORDER --- */
+    /* 1. Center (Stats) */
+    .end-screen .column:nth-child(2) {
+        order: 1;
+    }
+
+    /* 2. Left (Leaderboard) */
+    .end-screen .column:nth-child(1) {
+        order: 2;
+    }
+
+    /* 3. Right (Top Words) - Default Visible */
+    .end-screen .column:nth-child(3) {
+        order: 3;
+    }
+
+    /* Square-ish screens (Short Portrait): HIDE 3rd Columns to save space */
+    @media screen and (max-aspect-ratio: 11/10) and (min-aspect-ratio: 1/1) {
+
+        /* Game Screen: Hide Leaderboard (already handled, but explicit here) */
         .game-screen .column:nth-child(1) {
+            display: none;
+        }
+
+        /* Lobby: Hide Right Column */
+        .lobby-screen .column:nth-child(3) {
+            display: none;
+        }
+
+        /* End Screen: Hide Right Column */
+        .end-screen .column:nth-child(3) {
             display: none;
         }
     }
