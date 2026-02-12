@@ -2202,16 +2202,21 @@ body {
 }
 
 .splash-content {
+    position: absolute;
+    /* Replaced relative with absolute */
+    bottom: 40px;
+    /* Minimal padding from bottom */
+    left: 50%;
+    transform: translateX(-50%);
     text-align: center;
     color: #fff;
-    position: relative;
     z-index: 2;
-    /* Sit on top of image */
     background: rgba(0, 0, 0, 0.4);
-    /* Optional backdrop for readability */
-    padding: 20px;
+    padding: 10px 20px;
     border-radius: 12px;
     backdrop-filter: blur(4px);
+    width: auto;
+    max-width: 90%;
 }
 
 /* Logo or Title on Splash (removed per user request to rely on image, but keeping styles just in case) */
