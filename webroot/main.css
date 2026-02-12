@@ -2545,34 +2545,89 @@ screen and (max-aspect-ratio: 11/10) {
         order: 1;
         /* Display Stats and Next Game side-by-side in portrait */
         flex-direction: row;
-        align-items: center;
+        align-items: flex-start;
+        /* Align top */
         justify-content: center;
         gap: 8px;
-        flex-wrap: wrap;
-        /* Allow wrap if very narrow */
+        flex-wrap: nowrap;
+        /* Force side-by-side */
+    }
+
+    /* Wrap the stats and next game in flex items */
+    .stats-wrapper,
+    .next-game-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 0;
+        /* Allow shrinking */
     }
 
     /* Adjust children for side-by-side layout */
-    .end-screen .column:nth-child(2) .game-stats {
-        flex: 1;
-        min-width: 140px;
-        font-size: 0.9em;
-        /* Slightly smaller text */
+    .game-stats {
+        width: 100%;
+        font-size: 0.85em;
+        /* Smaller text */
         margin-bottom: 0;
     }
 
-    .end-screen .column:nth-child(2) .next-game {
-        flex: 1;
-        min-width: 120px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+    .next-game-wrapper .radial-progress-container {
+        margin-top: 0;
+        transform: scale(0.85);
+        /* Smaller loader */
     }
 
-    .end-screen .column:nth-child(2) .next-game .radial-progress {
-        width: 80px;
-        height: 80px;
+    .next-game-wrapper h3 {
+        font-size: 12px;
+        margin-bottom: 4px;
+        text-align: center;
+    }
+
+    /* --- SQUASH FIX: Reduce vertical heights in portrait --- */
+    .game-logo {
+        height: 36px;
+        /* Smaller logo (was 48px) */
+    }
+
+    .word-display {
+        height: 40px;
+        /* Smaller display (was 53px) */
+        font-size: 20px;
+        margin-bottom: 4px;
+    }
+
+    .grid {
+        margin: 2px 0;
+        gap: 2px;
+        /* Tighter grid */
+    }
+
+    .tile {
         font-size: 18px;
+        /* Smaller font on tiles */
+        border-radius: 4px;
+    }
+
+    .tile .points {
+        font-size: 8px;
+        right: 2px;
+        bottom: 1px;
+    }
+
+    .buttons {
+        padding: 4px 0;
+        gap: 6px;
+    }
+
+    .buttons button {
+        padding: 8px 10px;
+        /* Smaller buttons */
+        font-size: 13px;
+    }
+
+    .header {
+        margin-bottom: 4px;
     }
 
 
