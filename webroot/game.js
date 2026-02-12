@@ -682,6 +682,12 @@ class WordMaestro {
         const word = this.currentWord.toLowerCase();
         console.log(`📝 Attempting to submit word: ${word}`);
 
+        // Double-click guard: If word is empty (already cleared), just ignore
+        if (!word || word.length === 0) {
+            this._submitting = false;
+            return;
+        }
+
         // Check minimum word length
         if (word.length < this.MIN_WORD_LENGTH) {
             this.playSound('error');
