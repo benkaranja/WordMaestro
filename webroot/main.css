@@ -2202,16 +2202,24 @@ body {
     .grid {
         width: 100%;
         max-width: min(100%, 400px);
-        margin: 2px auto;
-        gap: 2px;
+        margin: 1px auto;
+        /* Reduced margin */
+        gap: 1px;
+        /* Tighter gap for small screens */
         flex: 1;
         min-height: 0;
+        align-content: center;
+        /* Center grid content */
     }
 
     .tile {
         font-size: 18px;
         aspect-ratio: 1;
         min-height: 0;
+        flex-shrink: 1;
+        /* Allow tiles to shrink if needed */
+        width: auto;
+        /* Let grid control width */
     }
 
     .tile .points {
@@ -2368,6 +2376,21 @@ body {
         max-height: 180px;
         overflow-y: auto;
     }
+
+    /* --- SPLASH SCREEN (PORTRAIT) --- */
+    .splash-bg.portrait {
+        display: block !important;
+    }
+
+    .splash-bg.landscape,
+    .splash-bg.square {
+        display: none !important;
+    }
+
+    .splash-content {
+        z-index: 10;
+        /* Ensure loader is on top */
+    }
 }
 
 /* LANDSCAPE MODE (Default / Desktop) - Implicitly handled by default styles, 
@@ -2376,21 +2399,25 @@ body {
 
     /* Ensure splash is landscape/square */
     .splash-bg.portrait {
-        display: none;
+        display: none !important;
     }
 
     .splash-bg.square {
-        /* or landscape */
-        display: block;
+        /* Default for 1:1 */
+        display: block !important;
+    }
+
+    .splash-bg.landscape {
+        display: none !important;
     }
 }
 
 @media (min-aspect-ratio: 16/10) {
     .splash-bg.square {
-        display: none;
+        display: none !important;
     }
 
     .splash-bg.landscape {
-        display: block;
+        display: block !important;
     }
 }
